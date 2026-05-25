@@ -274,6 +274,9 @@ onMounted(() => {
 <template>
   <div class="app-container">
     <header class="app-header">
+      <div class="hdr-coin">
+        <closer-click-support href="https://ko-fi.com/seyacat"></closer-click-support>
+      </div>
       <h1>{{ gameTitle }}</h1>
       <p class="subtitle">{{ playerInfo }}</p>
       
@@ -475,6 +478,13 @@ onMounted(() => {
   text-align: center;
   margin-bottom: 30px;
   color: var(--color-text-on-primary);
+  position: relative;
+}
+.hdr-coin {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 10;
 }
 
 .app-header h1 {
