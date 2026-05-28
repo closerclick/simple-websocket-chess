@@ -38,8 +38,8 @@ Ajedrez 1-on-1 sobre el proxy WebSocket de Closer Click. Vue 3 + Vite + Pinia + 
 
 ```jsonc
 {
-  "@gatoseya/closer-click-proxy-client": "^0.1.1",
-  "@gatoseya/closer-click-identity":     "^0.4.0",
+  "@closerclick/closer-click-proxy-client": "^0.1.1",
+  "@closerclick/closer-click-identity":     "^0.4.0",
   "vue": "^3", "pinia": "^3", "phaser": "^3"
 }
 ```

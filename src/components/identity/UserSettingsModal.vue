@@ -47,7 +47,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { Identity } from '@gatoseya/closer-click-identity'
+import { Identity } from '@closerclick/closer-click-identity'
 import { useConnectionStore } from '@/stores/connectionStore'
 
 const props = defineProps({ open: { type: Boolean, default: false } })

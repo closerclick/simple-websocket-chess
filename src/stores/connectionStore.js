@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { getWebSocketProxyClient } from '@gatoseya/closer-click-proxy-client'
-import { Identity } from '@gatoseya/closer-click-identity'
+import { getWebSocketProxyClient } from '@closerclick/closer-click-proxy-client'
+import { Identity } from '@closerclick/closer-click-identity'
 
 let _identity = null
 async function getIdentity () {
