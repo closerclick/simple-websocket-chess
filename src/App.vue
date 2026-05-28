@@ -275,7 +275,7 @@ onMounted(() => {
   <div class="app-container">
     <header class="app-header">
       <div class="hdr-coin">
-        <closer-click-support href="https://ko-fi.com/seyacat" repo="seyacat/simple-websocket-chess" discord="https://discord.gg/GGn6NXNQMp"></closer-click-support>
+        <closer-click-support href="https://ko-fi.com/closerclick" repo="seyacat/simple-websocket-chess" discord="https://discord.gg/D648uq7cth"></closer-click-support>
       </div>
       <h1>{{ gameTitle }}</h1>
       <p class="subtitle">{{ playerInfo }}</p>
