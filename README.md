@@ -23,7 +23,7 @@ El eje del ecosistema **[CloserClick](https://closer.click)** es el **autohosteo
 
 Ajedrez 1-on-1 sobre el proxy WebSocket de Closer Click. Vue 3 + Vite + Pinia + Phaser 3 (renderizado del tablero).
 
-🌐 Producción: **https://seyacat.github.io/simple-websocket-chess/**
+🌐 Producción: **https://closerclick.github.io/simple-websocket-chess/**
 
 ## Características
 
