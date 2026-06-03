@@ -7,7 +7,7 @@ export default defineConfig({
   base: './',
   plugins: [
     vue({
-      template: { compilerOptions: { isCustomElement: (tag) => tag === 'closer-click-support' } },
+      template: { compilerOptions: { isCustomElement: (tag) => tag.startsWith('closer-click-') } },
     }),
   ],
   resolve: {

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { getWebSocketProxyClient } from '@closerclick/closer-click-proxy-client'
 import { Identity } from '@closerclick/closer-click-identity'
+import { createVaultReputation } from '@closerclick/closer-click-reputation'
 
 let _identity = null
 async function getIdentity () {
@@ -13,6 +14,17 @@ async function getIdentity () {
     _identity = null
   }
   return _identity
+}
+
+// Registro de reputación compartido (reputation.closer.click), sobre el mismo
+// vault. Singleton. Habilita el panel "Reputación de la red" del perfil.
+let _reputation = null
+async function getReputation () {
+  if (_reputation) return _reputation
+  const id = await getIdentity()
+  if (!id) return null
+  try { _reputation = createVaultReputation(id) } catch (_) { _reputation = null }
+  return _reputation
 }
 
 function formatProxyMessage (type, payload) {
@@ -609,6 +621,7 @@ export const useConnectionStore = defineStore('connection', () => {
     myPubkey,
     myNickname,
     refreshIdentity,
+    getReputation,
     ratePeer,
     setPeerNickname,
     setMyNickname,
