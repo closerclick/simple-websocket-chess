@@ -1,82 +1,74 @@
 <template>
-  <div class="lobby-view">
-    <div class="lobby-header">
-      <h2>Lobby de Ajedrez</h2>
-    </div>
-
-    <div class="lobby-content">
-      <!-- Acciones: Crear / Unirse -->
-      <div class="lobby-actions-column">
-        <!-- Sección de creación de juego -->
-        <div class="game-creation-section">
-          <h3>Crear Nuevo Juego</h3>
-          
-          <div class="creation-options">
-            <div class="private-game-toggle">
-              <label class="toggle-switch">
-                <input type="checkbox" v-model="isPrivateGame">
-                <span class="slider round"></span>
-              </label>
-              <div class="toggle-label-text">
-                <strong>Hacer juego privado</strong>
-                <small v-if="isPrivateGame">Solo podrán unirse con tu token</small>
-                <small v-else>El juego será visible en la lista pública</small>
-              </div>
-            </div>
-
-            <button
-              @click="createGame"
-              class="create-button primary-action"
-              :disabled="isCreating"
-              data-testid="create-server"
-            >
-              <span class="button-icon">{{ isPrivateGame ? '🔐' : '🌐' }}</span>
-              <span class="button-text">
-                <strong>Crear Servidor</strong>
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Sección de unirse con token manual -->
-        <div class="manual-join-section">
-          <h3>Unirse con Token</h3>
-          <div class="manual-join-form">
-            <input
-              v-model="manualToken"
-              type="text"
-              placeholder="Ingresa el token del host (ej: ABC123)"
-              class="token-input"
-              :disabled="isJoining"
-              data-testid="join-token-input"
-            />
-            <button
-              @click="joinWithManualToken"
-              class="join-button"
-              :disabled="!isValidToken(manualToken) || isJoining"
-              data-testid="join-server"
-            >
-              {{ isJoining ? 'Uniéndose...' : 'Unirse' }}
-            </button>
-          </div>
-          <p class="help-text">
-            Pídele al host que te comparta su token para unirte a su juego privado.
-          </p>
-        </div>
+  <div class="lobby">
+    <!-- Crear partida -->
+    <section class="create card">
+      <div class="create-head">
+        <h2>Jugá una partida</h2>
+        <p>Creá una mesa y compartila, o unite a una de las públicas.</p>
       </div>
-    </div>
+      <div class="create-row">
+        <div class="vis-toggle" role="tablist">
+          <button :class="{ on: !isPrivate }" @click="isPrivate = false">🌐 Pública</button>
+          <button :class="{ on: isPrivate }" @click="isPrivate = true">🔒 Privada</button>
+        </div>
+        <button class="primary create-btn" @click="createGame">Crear partida →</button>
+      </div>
+      <div class="manual">
+        <input v-model="manualToken" placeholder="¿Tenés un código de mesa? Pegalo acá" @keyup.enter="joinManual" />
+        <button @click="joinManual" :disabled="manualToken.trim().length < 3">Unirse</button>
+      </div>
+      <p v-if="errorMessage" class="err">{{ errorMessage }} <button class="link" @click="errorMessage = ''">✕</button></p>
+    </section>
 
-    <!-- Estado de carga -->
-    <div v-if="isCreating || isJoining" class="loading-overlay">
-      <div class="loading-spinner"></div>
-      <p>{{ loadingMessage }}</p>
-    </div>
+    <!-- Mesas públicas -->
+    <section class="rooms">
+      <header class="rooms-head">
+        <div class="rooms-title">
+          <h3>Mesas públicas</h3>
+          <span class="count">{{ rooms.length }}</span>
+        </div>
+        <div class="rooms-tools">
+          <label class="open-filter" :class="{ on: onlyOpen }">
+            <input type="checkbox" v-model="onlyOpen" />
+            Sólo con lugar<span v-if="openCount"> ({{ openCount }})</span>
+          </label>
+          <span class="conn"><span class="dot" :class="connectionStore.isConnected ? 'on' : 'off'"></span>{{ connectionStore.isConnected ? 'En línea' : 'Conectando…' }}</span>
+        </div>
+      </header>
 
-    <!-- Mensajes de error -->
-    <div v-if="errorMessage" class="error-message">
-      {{ errorMessage }}
-      <button @click="clearError" class="dismiss-button">×</button>
-    </div>
+      <div v-if="!rooms.length" class="empty">
+        <div class="empty-mark">♟</div>
+        <p>{{ onlyOpen ? 'No hay mesas con lugar ahora.' : 'No hay mesas públicas todavía.' }}</p>
+        <p class="empty-sub">Creá una y esperá rival — aparecerá acá para todos.</p>
+      </div>
+
+      <ul v-else class="room-list">
+        <li v-for="r in rooms" :key="r.roomId" class="room" :class="{ contact: r.isContact, full: !openSeats(r) }">
+          <div class="host">
+            <span class="avatar" :class="{ contact: r.isContact }">{{ hostInitials(r) }}</span>
+            <div class="host-meta">
+              <span class="host-name">
+                {{ hostLabel(r) }}
+                <span v-if="r.isContact" class="tag friend">amigo</span>
+              </span>
+              <span class="host-rep">
+                <template v-if="(r.hostScore || 0) > 0">★ {{ (r.hostScore * 5).toFixed(1) }} reputación</template>
+                <template v-else>jugador nuevo</template>
+              </span>
+            </div>
+          </div>
+
+          <div class="room-stats">
+            <span class="stat" :class="statusClass(r)">{{ statusText(r) }}</span>
+            <span class="stat ghost" title="Espectadores">👁 {{ r.spectators || 0 }}</span>
+          </div>
+
+          <button class="join" :class="{ primary: openSeats(r) }" :disabled="!canJoin(r)" @click="joinGame(r.roomId)">
+            {{ openSeats(r) ? 'Unirse' : 'Mirar' }}
+          </button>
+        </li>
+      </ul>
+    </section>
   </div>
 </template>
 
@@ -86,576 +78,142 @@ import { useConnectionStore } from '@/stores/connectionStore'
 
 const connectionStore = useConnectionStore()
 
-// Estado local
-const isCreating = ref(false)
-const isJoining = ref(false)
-const isRefreshing = ref(false)
+const isPrivate = ref(false)
 const manualToken = ref('')
+const onlyOpen = ref(false)
 const errorMessage = ref('')
-const refreshInterval = ref(null)
+let refreshInterval = null
 
-// Computed
-const publicHosts = computed(() => connectionStore.publicHosts)
-const lastUpdateText = computed(() => {
-  if (!connectionStore.lastPublicHostsUpdate) return 'Nunca actualizado'
-  
-  const now = Date.now()
-  const diff = now - connectionStore.lastPublicHostsUpdate
-  const seconds = Math.floor(diff / 1000)
-  
-  if (seconds < 60) return `Hace ${seconds} segundos`
-  if (seconds < 3600) return `Hace ${Math.floor(seconds / 60)} minutos`
-  return `Hace ${Math.floor(seconds / 3600)} horas`
+const openSeats = (r) => r.status === 'waiting' && (r.openSeats || 0) > 0
+
+const rooms = computed(() => {
+  let list = connectionStore.publicRooms || []
+  if (onlyOpen.value) list = list.filter(openSeats)
+  // Orden: amigos primero → con lugar primero → más reputación.
+  return [...list].sort((a, b) => {
+    if (!!b.isContact !== !!a.isContact) return b.isContact ? 1 : -1
+    const ao = openSeats(a) ? 1 : 0, bo = openSeats(b) ? 1 : 0
+    if (bo !== ao) return bo - ao
+    return (b.hostScore || 0) - (a.hostScore || 0)
+  })
 })
+const openCount = computed(() => (connectionStore.publicRooms || []).filter(openSeats).length)
 
-const loadingMessage = computed(() => {
-  if (isCreating.value) return 'Creando juego...'
-  if (isJoining.value) return 'Uniéndose al juego...'
-  return ''
+const hostLabel = (r) => r.hostName || (r.isContact ? 'Tu contacto' : 'Anfitrión')
+const hostInitials = (r) => {
+  const n = r.hostName || ''
+  return n ? n.replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '♟' : '♟'
+}
+const statusText = (r) => {
+  if (r.status === 'playing') return 'En juego'
+  if (r.status === 'paused') return 'En pausa'
+  if (r.status === 'ended') return 'Terminada'
+  const n = r.openSeats || 0
+  return n > 0 ? `${n} lugar${n > 1 ? 'es' : ''} libre${n > 1 ? 's' : ''}` : 'Completa'
+}
+const statusClass = (r) => (openSeats(r) ? 'open' : (r.status === 'playing' ? 'playing' : 'busy'))
+const canJoin = (r) => r.status !== 'ended'
+
+const createGame = () => connectionStore.requireNick(() => {
+  errorMessage.value = ''
+  connectionStore.setMode('host', isPrivate.value ? 'private' : 'public')
 })
-
-// Métodos
-const isValidToken = (token) => {
-  return token && token.trim().length >= 4 && /^[A-Za-z0-9]+$/.test(token.trim())
-}
-
-const isPrivateGame = ref(false)
-
-const createGame = async () => {
-  if (isCreating.value) return
-  
-  isCreating.value = true
+const joinGame = (roomId) => connectionStore.requireNick(async () => {
   errorMessage.value = ''
-  
-  try {
-    const visibilityMode = isPrivateGame.value ? 'private' : 'public'
-    connectionStore.setMode('host', visibilityMode)
-  } catch (error) {
-    errorMessage.value = `Error al crear juego: ${error.message}`
-    console.error('Error creating game:', error)
-  } finally {
-    isCreating.value = false
-  }
+  connectionStore.setMode('guest')
+  const ok = await connectionStore.subscribeToHost(roomId)
+  if (!ok) { errorMessage.value = 'No se pudo unir a la mesa.'; connectionStore.setMode(null) }
+})
+const joinManual = () => {
+  const t = manualToken.value.trim()
+  if (t.length < 3) { errorMessage.value = 'Código de mesa inválido.'; return }
+  joinGame(t)
 }
 
-const joinGame = async (hostToken) => {
-  if (isJoining.value) return
-  
-  isJoining.value = true
-  errorMessage.value = ''
-  
-  try {
-    // En el proxy, establecer modo guest
-    connectionStore.setMode('guest')
-    
-    // Luego suscribirse al host (handshake)
-    const success = await connectionStore.subscribeToHost(hostToken)
-    
-    if (!success) {
-      throw new Error('No se pudo conectar con el host')
-    }
-    
-    // La transición a la vista de guest-waiting se manejará en App.vue
-  } catch (error) {
-    errorMessage.value = `Error al unirse al juego: ${error.message}`
-    console.error('Error joining game:', error)
-    // Revertir modo si falla
-    connectionStore.setMode(null)
-  } finally {
-    isJoining.value = false
-  }
-}
+const refresh = () => { if (connectionStore.isConnected) connectionStore.listPublicHosts() }
 
-const joinWithManualToken = async () => {
-  const token = manualToken.value.trim()
-  if (!isValidToken(token)) {
-    errorMessage.value = 'Token inválido. Debe tener al menos 4 caracteres alfanuméricos.'
-    return
-  }
-  
-  await joinGame(token)
-}
-
-const refreshPublicHosts = async () => {
-  if (isRefreshing.value) return
-  
-  isRefreshing.value = true
-  errorMessage.value = ''
-  
-  try {
-    await connectionStore.listPublicHosts()
-  } catch (error) {
-    errorMessage.value = `Error al actualizar lista: ${error.message}`
-    console.error('Error refreshing public hosts:', error)
-  } finally {
-    isRefreshing.value = false
-  }
-}
-
-const clearError = () => {
-  errorMessage.value = ''
-}
-
-const startAutoRefresh = () => {
-  // Quien sólo mira el lobby NO es miembro del canal de descubrimiento, así que no
-  // recibe eventos joined/left en vivo: el poll es el mecanismo principal. Como cada
-  // refresh es un único list() (~ms), podemos pollear seguido.
-  const refreshIntervalMs = parseInt(import.meta.env.VITE_WS_LOBBY_REFRESH_INTERVAL) || 3000
-  refreshInterval.value = setInterval(() => {
-    if (!isRefreshing.value && connectionStore.isConnected) {
-      refreshPublicHosts()
-    }
-  }, refreshIntervalMs)
-}
-
-const stopAutoRefresh = () => {
-  if (refreshInterval.value) {
-    clearInterval(refreshInterval.value)
-    refreshInterval.value = null
-  }
-}
-
-// Lifecycle hooks
 onMounted(() => {
-  // Cargar lista inicial de hosts públicos
-  if (connectionStore.isConnected) {
-    refreshPublicHosts()
-    startAutoRefresh()
-  }
+  if (connectionStore.isConnected) refresh()
+  const ms = parseInt(import.meta.env.VITE_WS_LOBBY_REFRESH_INTERVAL) || 5000
+  refreshInterval = setInterval(refresh, ms)
 })
-
-// Arrancar/parar el auto-refresh cuando cambia la conexión
-watch(() => connectionStore.isConnected, (connected) => {
-  if (connected && !refreshInterval.value) {
-    refreshPublicHosts()
-    startAutoRefresh()
-  } else if (!connected) {
-    stopAutoRefresh()
-  }
-})
-
-onUnmounted(() => {
-  stopAutoRefresh()
-})
+onUnmounted(() => { if (refreshInterval) clearInterval(refreshInterval) })
+watch(() => connectionStore.isConnected, (c) => { if (c) refresh() })
 </script>
 
 <style scoped>
-.lobby-view {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 20px;
+.lobby { display: flex; flex-direction: column; gap: 22px; }
+
+/* Crear */
+.create { padding: 24px; }
+.create-head h2 { font-size: 24px; margin-bottom: 4px; }
+.create-head p { color: var(--color-text-secondary); font-size: 14px; margin: 0 0 18px; }
+.create-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.vis-toggle { display: inline-flex; background: var(--color-surface-variant); border: 1px solid var(--color-border); border-radius: 999px; padding: 3px; }
+.vis-toggle button { border: none; background: transparent; color: var(--color-text-secondary); border-radius: 999px; padding: 8px 16px; font-size: 13px; }
+.vis-toggle button.on { background: var(--color-primary); color: #1a1408; box-shadow: 0 2px 8px rgba(205,163,80,.3); }
+.create-btn { margin-left: auto; padding: 11px 22px; font-size: 15px; }
+.manual { display: flex; gap: 10px; margin-top: 16px; }
+.manual input { flex: 1; }
+.err { color: var(--color-error-light); font-size: 13px; margin: 12px 0 0; }
+.link { background: none; border: none; color: inherit; padding: 0 4px; cursor: pointer; }
+
+/* Mesas */
+.rooms-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 12px; flex-wrap: wrap; }
+.rooms-title { display: flex; align-items: baseline; gap: 10px; }
+.rooms-title h3 { font-size: 18px; }
+.count { font-family: var(--font-mono); font-size: 13px; color: var(--color-primary-light); background: var(--color-surface-variant); border-radius: 999px; padding: 2px 10px; }
+.rooms-tools { display: flex; align-items: center; gap: 14px; }
+.open-filter { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--color-text-secondary); cursor: pointer; user-select: none; }
+.open-filter.on { color: var(--color-primary-light); }
+.open-filter input { width: 15px; height: 15px; accent-color: var(--color-primary); }
+.conn { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--color-text-tertiary); }
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot.on { background: var(--color-success); box-shadow: 0 0 0 3px rgba(122,166,79,.18); }
+.dot.off { background: var(--color-warning); }
+
+.empty { text-align: center; padding: 48px 24px; color: var(--color-text-secondary); border: 1px dashed var(--color-border); border-radius: 16px; background: var(--color-surface); }
+.empty-mark { font-size: 48px; opacity: .25; margin-bottom: 8px; }
+.empty-sub { font-size: 13px; color: var(--color-text-tertiary); margin-top: 4px; }
+
+.room-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.room {
+  display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 14px;
+  padding: 14px 16px; background: var(--color-card-bg);
+  border: 1px solid var(--color-border); border-radius: 14px;
+  transition: border-color .15s ease, transform .12s ease, box-shadow .15s ease;
 }
+.room:hover { border-color: var(--color-border-dark); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.room.contact { border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border)); }
+.room.full { opacity: .82; }
 
-.lobby-header {
-  text-align: center;
-  margin-bottom: 30px;
+.host { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.avatar {
+  width: 42px; height: 42px; flex-shrink: 0; border-radius: 12px; display: grid; place-items: center;
+  font-family: var(--font-headline); font-weight: 700; font-size: 15px;
+  background: var(--color-surface-variant); color: var(--color-text-secondary); border: 1px solid var(--color-border);
 }
+.avatar.contact { background: linear-gradient(145deg, var(--color-primary-light), var(--color-primary-dark)); color: #1a1408; border-color: transparent; }
+.host-meta { display: flex; flex-direction: column; min-width: 0; }
+.host-name { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--color-text); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.host-rep { font-size: 12px; color: var(--color-text-tertiary); }
+.tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 6px; border-radius: 6px; }
+.tag.friend { background: rgba(205,163,80,.18); color: var(--color-primary-light); }
 
-.lobby-header h2 {
-  margin: 0 0 10px 0;
-  color: var(--color-text);
-}
+.room-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.stat { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--color-surface-variant); color: var(--color-text-secondary); white-space: nowrap; }
+.stat.open { background: rgba(122,166,79,.18); color: var(--color-success-light); }
+.stat.playing { background: rgba(94,154,166,.16); color: var(--color-info-light); }
+.stat.busy { background: var(--color-surface-variant); color: var(--color-text-tertiary); }
+.stat.ghost { background: transparent; color: var(--color-text-tertiary); padding: 3px 4px; }
 
-.subtitle {
-  color: var(--color-text-secondary);
-  margin: 0;
-}
-.lobby-content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
+.join { padding: 9px 18px; font-size: 14px; min-width: 92px; }
 
-.lobby-actions-column {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.public-hosts-column {
-  display: flex;
-  flex-direction: column;
-}
-
-.game-creation-section,
-.public-hosts-section,
-.manual-join-section {
-  background: var(--color-card-bg);
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: var(--shadow-sm);
-  height: 100%;
-}
-
-.game-creation-section h3,
-.public-hosts-section h3,
-.manual-join-section h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  color: var(--color-text);
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: 10px;
-}
-
-.creation-options {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* Toggle Switch Styles */
-.private-game-toggle {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 10px;
-  background: var(--color-surface);
-  border-radius: 8px;
-  border: 1px solid var(--color-border);
-}
-
-.toggle-label-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.toggle-label-text strong {
-  font-size: 15px;
-  color: var(--color-text);
-}
-
-.toggle-label-text small {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
-
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 50px;
-  height: 24px;
-}
-
-.toggle-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  transition: .4s;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 16px;
-  width: 16px;
-  left: 4px;
-  bottom: 4px;
-  background-color: white;
-  transition: .4s;
-}
-
-input:checked + .slider {
-  background-color: var(--color-info);
-}
-
-input:focus + .slider {
-  box-shadow: 0 0 1px var(--color-info);
-}
-
-input:checked + .slider:before {
-  transform: translateX(26px);
-}
-
-.slider.round {
-  border-radius: 24px;
-}
-
-.slider.round:before {
-  border-radius: 50%;
-}
-
-/* Action Button */
-.create-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 15px;
-  padding: 15px;
-  border: none;
-  border-radius: 8px;
-  background: var(--color-button-success);
-  color: var(--color-text-on-primary);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.create-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  background: var(--color-button-success-hover);
-  box-shadow: var(--shadow-md);
-}
-
-.button-icon {
-  font-size: 24px;
-}
-
-.button-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.button-text strong {
-  font-size: 16px;
-  color: var(--color-text);
-  margin-bottom: 5px;
-}
-
-.button-text small {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.refresh-controls {
-  display: flex;
-  align-items: center;
-}
-
-.last-update {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  font-style: italic;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--color-text-secondary);
-}
-
-.empty-state p {
-  margin: 5px 0;
-}
-
-.hosts-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.host-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px;
-  background: var(--color-surface);
-  border-radius: 8px;
-  border: 1px solid var(--color-border);
-}
-
-.host-info {
-  flex: 1;
-}
-
-.host-token {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.token-label {
-  font-weight: bold;
-  color: var(--color-text);
-}
-
-.token-value {
-  font-family: monospace;
-  background: var(--color-surface-variant);
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.host-stats {
-  display: flex;
-  gap: 15px;
-}
-
-.stat {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 14px;
-  color: var(--color-text-secondary);
-}
-
-.stat-icon {
-  font-size: 16px;
-}
-
-.join-button {
-  padding: 8px 20px;
-  background: var(--color-button-success);
-  color: var(--color-text-on-primary);
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.join-button:hover:not(:disabled) {
-  background: var(--color-button-success-hover);
-}
-
-.join-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.manual-join-form {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.token-input {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  font-size: 16px;
-}
-
-.token-input:focus {
-  outline: none;
-  border-color: var(--color-primary-light);
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-}
-
-.help-text {
-  font-size: 14px;
-  color: var(--color-text-secondary);
-  margin: 0;
-}
-
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--color-overlay-light);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.loading-spinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid var(--color-surface);
-  border-top: 5px solid var(--color-info);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 20px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.error-message {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: var(--color-button-danger);
-  color: var(--color-text-on-primary);
-  padding: 15px 20px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-  max-width: 400px;
-  box-shadow: var(--shadow-md);
-  z-index: 1000;
-}
-
-.dismiss-button {
-  background: none;
-  border: none;
-  color: var(--color-text-on-primary);
-  font-size: 20px;
-  cursor: pointer;
-  padding: 0;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-
-.dismiss-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-@media (max-width: 768px) {
-  .lobby-view { padding: 8px; }
-  .lobby-header { margin-bottom: 16px; }
-  .lobby-header h2 { font-size: 1.3rem; }
-
-  .lobby-content {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  .game-creation-section,
-  .public-hosts-section,
-  .manual-join-section { padding: 14px; }
-
-  .game-creation-section h3,
-  .public-hosts-section h3,
-  .manual-join-section h3 { font-size: 1.05rem; margin-bottom: 12px; }
-
-  .private-game-toggle { gap: 10px; }
-
-  .manual-join-form { flex-direction: column; gap: 8px; }
-  .token-input { width: 100%; box-sizing: border-box; font-size: 16px; }
-  .join-button { width: 100%; padding: 12px; }
-
-  .section-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .host-card {
-    flex-direction: column;
-    gap: 15px;
-    align-items: stretch;
-  }
-  .join-button {
-    align-self: flex-end;
-  }
+@media (max-width: 560px) {
+  .room { grid-template-columns: 1fr auto; }
+  .room-stats { grid-column: 1 / -1; flex-direction: row; align-items: center; order: 3; }
+  .join { grid-row: 1; grid-column: 2; }
+  .create-btn { margin-left: 0; width: 100%; }
+  .create-row { flex-direction: column; align-items: stretch; }
 }
 </style>

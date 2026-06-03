@@ -26,6 +26,7 @@ export const useConnectionStore = defineStore('connection', () => {
     subscribers: c.subscribers,
     subscribersCount: c.subscribersCount,
     publicHosts: c.publicHosts,
+    publicRooms: c.publicRooms,
     lastPublicHostsUpdate: c.lastPublicHostsUpdate,
     connectionError: c.connectionError,
     connectionStatus: c.connectionStatus,
@@ -51,6 +52,12 @@ export const useConnectionStore = defineStore('connection', () => {
     setPeerNickname: c.setPeerNickname,
     ratePeer: c.ratePeer,
     getReputation: c.getReputation,
+    // nickname requerido
+    hasNick: c.hasNick,
+    nickModalOpen: c.nickModalOpen,
+    requireNick: c.requireNick,
+    submitNick: c.submitNick,
+    cancelNick: c.cancelNick,
     // legacy
     setOpponentToken, clearError, reset
   }

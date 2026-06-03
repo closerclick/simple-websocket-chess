@@ -36,12 +36,17 @@ const visibility = ref(null)
 const roomId = ref(null)              // host: == nuestro token ; guest: token del host
 const myToken = ref(null)             // token propio del proxy
 const publicHosts = ref([])           // roomIds (tokens de hosts) del canal de descubrimiento
+const publicRooms = ref([])           // resúmenes enriquecidos (host, asientos, viewers, isContact)
 const lastPublicHostsUpdate = ref(null)
 const myPubkey = ref(null)
 const myNickname = ref(localStorage.getItem('chess_nickname') || '')
 const peerIdentities = ref(new Map()) // pubkey → { pubkey, peer, announcedNickname }
 const trustMap = ref(new Map())       // pubkey → rating 0..5
 const connectionError = ref(null)
+
+// Nickname requerido (patrón del ecosistema: pedirlo al inicio o por acción).
+const nickModalOpen = ref(false)
+let pendingNickAction = null
 
 // estado de UI local (selección de pieza) — no viaja por el motor
 const selectedPiece = ref(null)
@@ -182,15 +187,37 @@ function setSubscribedHost (v) { if (!v) { /* limpieza la hace setMode(null)/uns
 async function listPublicHosts () {
   if (!lobby) return []
   try {
-    // La lista del lobby sólo necesita los tokens de host (== roomId). Usar
-    // transport.list() directo es 1 round-trip (~ms); listRooms() añadía una
-    // ventana de INFO de >1s que acá no hace falta (no mostramos metadata).
-    const tokens = await lobby.transport.list(discoveryChannel(GAME_ID))
-    publicHosts.value = tokens.filter(t => t && t !== myToken.value)
+    // Resúmenes enriquecidos: host (pubkey), asientos libres, espectadores, y
+    // ya ordenados amigos-primero + reputación (rankRooms en la lib). El INFO se
+    // resuelve apenas responden los hosts; los eventos de watch mantienen la
+    // lista fresca, así que la ventana corta no se nota.
+    const rooms = await lobby.listRooms({ timeout: 900 })
+    publicRooms.value = rooms
+    publicHosts.value = rooms.map(r => r.roomId)
     lastPublicHostsUpdate.value = Date.now()
     return publicHosts.value
   } catch (_) { return publicHosts.value }
 }
+
+// ── Nickname requerido ─────────────────────────────────────────────
+const hasNick = computed(() => !!(myNickname.value && myNickname.value.trim().length >= 2))
+
+// Ejecuta fn si hay nick; si no, abre el modal y la reanuda al guardar.
+function requireNick (fn) {
+  if (hasNick.value) { if (fn) fn(); return }
+  pendingNickAction = typeof fn === 'function' ? fn : null
+  nickModalOpen.value = true
+}
+async function submitNick (v) {
+  const name = (v || '').trim()
+  if (name.length < 2) return false
+  await setMyNickname(name)
+  nickModalOpen.value = false
+  const a = pendingNickAction; pendingNickAction = null
+  if (a) { try { await a() } catch (_) {} }
+  return true
+}
+function cancelNick () { nickModalOpen.value = false; pendingNickAction = null }
 
 function disconnect () { setMode(null); connected.value = false }
 
@@ -329,11 +356,13 @@ export const lobbyController = {
   connect, disconnect, setMode, subscribeToHost, unsubscribe, setSubscribedHost,
   listPublicHosts, refreshIdentity,
   isConnected, isHost, isGuest, mode, visibility, token, shortToken, myToken,
-  roomId, subscribedHost, subscribers, subscribersCount, publicHosts,
+  roomId, subscribedHost, subscribers, subscribersCount, publicHosts, publicRooms,
   lastPublicHostsUpdate, connectionError, connectionStatus, canPlay,
   // identidad / reputación
   myPubkey, myNickname, peerIdentities, trustMap, setMyNickname, ratePeer,
   setPeerNickname, getReputation,
+  // nickname requerido
+  hasNick, nickModalOpen, requireNick, submitNick, cancelNick,
   // juego
   board, currentTurn, moveHistory, timers, winner, gameStatus, seats, spectators,
   spectatorsCount, mySeatColor, playerColor, isSeated, isSpectator, isMyTurn,
