@@ -10,7 +10,7 @@
 // ⚠️ Verificar en navegador (Playwright, 2 identidades) — ver MIGRATION.md.
 
 import { ref, shallowRef, computed } from 'vue'
-import { createLobby, STATUS } from '@closerclick/closer-click-lobby'
+import { createLobby, STATUS, discoveryChannel } from '@closerclick/closer-click-lobby'
 import { getWebSocketProxyClient } from '@closerclick/closer-click-proxy-client'
 import { Identity } from '@closerclick/closer-click-identity'
 import { createVaultReputation } from '@closerclick/closer-click-reputation'
@@ -182,8 +182,11 @@ function setSubscribedHost (v) { if (!v) { /* limpieza la hace setMode(null)/uns
 async function listPublicHosts () {
   if (!lobby) return []
   try {
-    const rooms = await lobby.listRooms({ timeout: 1200 })
-    publicHosts.value = rooms.map(r => r.roomId)
+    // La lista del lobby sólo necesita los tokens de host (== roomId). Usar
+    // transport.list() directo es 1 round-trip (~ms); listRooms() añadía una
+    // ventana de INFO de >1s que acá no hace falta (no mostramos metadata).
+    const tokens = await lobby.transport.list(discoveryChannel(GAME_ID))
+    publicHosts.value = tokens.filter(t => t && t !== myToken.value)
     lastPublicHostsUpdate.value = Date.now()
     return publicHosts.value
   } catch (_) { return publicHosts.value }

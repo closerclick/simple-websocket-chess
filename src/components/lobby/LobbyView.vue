@@ -197,10 +197,10 @@ const clearError = () => {
 }
 
 const startAutoRefresh = () => {
-  // Refrescar cada X segundos (por defecto 20000 ms = 20 segundos)
-  // Updates en tiempo real (joined/left/peer_disconnected) ya mantienen la lista al día.
-  // Este poll es solo respaldo por si se pierde algún evento.
-  const refreshIntervalMs = parseInt(import.meta.env.VITE_WS_LOBBY_REFRESH_INTERVAL) || 60000
+  // Quien sólo mira el lobby NO es miembro del canal de descubrimiento, así que no
+  // recibe eventos joined/left en vivo: el poll es el mecanismo principal. Como cada
+  // refresh es un único list() (~ms), podemos pollear seguido.
+  const refreshIntervalMs = parseInt(import.meta.env.VITE_WS_LOBBY_REFRESH_INTERVAL) || 3000
   refreshInterval.value = setInterval(() => {
     if (!isRefreshing.value && connectionStore.isConnected) {
       refreshPublicHosts()
