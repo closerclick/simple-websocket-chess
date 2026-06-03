@@ -73,7 +73,7 @@ export function getPseudoLegalMoves(board, row, col, piece, moveHistory = [], ch
   
   switch (pieceType) {
     case PIECE_TYPES.PAWN:
-      return getPawnMoves(board, row, col, pieceColor)
+      return getPawnMoves(board, row, col, pieceColor, moveHistory)
     case PIECE_TYPES.KNIGHT:
       return getKnightMoves(board, row, col, pieceColor)
     case PIECE_TYPES.BISHOP:
@@ -90,7 +90,7 @@ export function getPseudoLegalMoves(board, row, col, piece, moveHistory = [], ch
 }
 
 // Movimientos del peón
-function getPawnMoves(board, row, col, color) {
+function getPawnMoves(board, row, col, color, moveHistory = []) {
   const moves = []
   const direction = color === COLORS.WHITE ? -1 : 1 // Blancas suben, negras bajan
   const startRow = color === COLORS.WHITE ? 6 : 1
@@ -122,8 +122,22 @@ function getPawnMoves(board, row, col, color) {
     }
   }
   
-  // TODO: Implementar captura al paso
-  
+  // Captura al paso (en passant): si el último movimiento fue un peón rival que
+  // avanzó dos casillas y quedó al lado nuestro, podemos capturarlo en diagonal
+  // a la casilla que "saltó".
+  const last = moveHistory && moveHistory.length ? moveHistory[moveHistory.length - 1] : null
+  if (last && last.piece && last.from && last.to &&
+      getPieceType(last.piece) === PIECE_TYPES.PAWN &&
+      getPieceColor(last.piece) !== color &&
+      Math.abs(last.to.row - last.from.row) === 2 &&
+      last.to.row === row && Math.abs(last.to.col - col) === 1) {
+    const epRow = row + direction
+    const epCol = last.to.col
+    if (isValidPosition(epRow, epCol) && !board[epRow][epCol]) {
+      moves.push({ row: epRow, col: epCol, enPassant: true })
+    }
+  }
+
   return moves
 }
 
@@ -325,8 +339,13 @@ export function applyMove(board, fromRow, fromCol, toRow, toCol) {
     }
   }
   
-  // TODO: Implementar captura al paso
-  
+  // Captura al paso: un peón que se mueve en diagonal hacia una casilla que
+  // estaba vacía sólo puede ser en passant → el peón capturado quedó en la fila
+  // de origen, en la columna de destino.
+  if (getPieceType(piece) === PIECE_TYPES.PAWN && fromCol !== toCol && !board[toRow][toCol]) {
+    newBoard[fromRow][toCol] = ''
+  }
+
   return newBoard
 }
 
