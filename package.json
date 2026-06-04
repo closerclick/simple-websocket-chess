@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@closerclick/closer-click-identity": "^0.8.0",
+    "@closerclick/closer-click-identity": "0.9.1",
     "@closerclick/closer-click-lobby": "0.1.5",
     "@closerclick/closer-click-nav": "0.2.0",
     "@closerclick/closer-click-profile": "0.1.1",
