@@ -442,7 +442,7 @@ onMounted(async () => {
 .topbar {
   position: sticky; top: 0; z-index: 20;
   display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; padding: 10px 18px;
+  gap: 12px; padding: 10px 18px; flex-wrap: wrap; row-gap: 8px;
   background: rgba(28, 23, 16, .82); backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--color-border);
 }
@@ -458,7 +458,12 @@ onMounted(async () => {
 .brand-name { font-family: var(--font-headline); font-weight: 700; font-size: 18px; color: var(--color-text); }
 .brand-sub { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--color-text-tertiary); }
 
-.hdr-actions { display: flex; align-items: center; gap: 10px; }
+.hdr-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+/* Móvil: la marca se queda en su fila; las acciones bajan a una 2ª fila a la
+   derecha (convención §5 de CONVENCIONES-APPS.md). */
+@media (max-width: 560px) {
+  .hdr-actions { flex-basis: 100%; }
+}
 .ghost-btn { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-secondary); padding: 7px 12px; border-radius: 999px; font-size: 13px; }
 .ghost-btn:hover { color: var(--color-text); border-color: var(--color-border-dark); }
 .lang-btn { background: var(--color-surface-variant); border: 1px solid var(--color-border); color: var(--color-text-secondary); padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: .03em; }
