@@ -410,6 +410,7 @@ onMounted(async () => {
       :ref="bindMyProfile"
       modal
       mode="self"
+      indicators="elo:chess"
       :lang="lang"
       :style="profileTheme"
       :pubkey="myProfilePk"

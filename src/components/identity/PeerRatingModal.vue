@@ -22,6 +22,7 @@
         <closer-click-profile
           ref="profileEl"
           mode="edit"
+          indicators="elo:chess"
           :lang="lang"
           :style="profileTheme"
           :pubkey="info.pubkey"
@@ -107,6 +108,15 @@ const provider = {
     const rep = await connectionStore.getReputation()
     if (!rep || !props.info?.pubkey) return null
     try { return await rep.reputationOf(props.info.pubkey) } catch (_) { return null }
+  },
+  async getDerived (pubkey, name, scope) {
+    const rep = await connectionStore.getReputation()
+    if (!rep) return null
+    try {
+      if (name === 'elo' && typeof rep.eloOf === 'function') { const e = await rep.eloOf(pubkey, scope); return e ? { value: e.elo, count: e.games } : null }
+      if (rep.client?.getDerived) return await rep.client.getDerived(pubkey, name, scope)
+    } catch (_) {}
+    return null
   },
   async rate (pubkey, indicators, notes) {
     const nick = customNickname.value.trim()
