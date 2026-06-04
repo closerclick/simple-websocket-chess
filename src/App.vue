@@ -314,6 +314,7 @@ onMounted(async () => {
         <button class="me-chip" @click="settingsOpen = true" :title="t.identity">
           <span class="dot" :class="connectionStore.isConnected ? 'on' : 'off'"></span>
           <span class="me-name">@{{ connectionStore.myNickname || t.noName }}</span>
+          <span v-if="connectionStore.myElo" class="elo-badge" title="ELO">{{ connectionStore.myElo.elo }}</span>
         </button>
 
         <button class="lang-btn" @click="toggleLang" :title="lang === 'es' ? 'English' : 'Español'">{{ lang === 'es' ? 'EN' : 'ES' }}</button>
@@ -408,6 +409,7 @@ onMounted(async () => {
 .ghost-btn:hover { color: var(--color-text); border-color: var(--color-border-dark); }
 .lang-btn { background: var(--color-surface-variant); border: 1px solid var(--color-border); color: var(--color-text-secondary); padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: .03em; }
 .lang-btn:hover { color: var(--color-text); border-color: var(--color-primary); }
+.elo-badge { background: var(--color-primary); color: #1a1408; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 700; font-family: var(--font-mono); }
 
 .me-chip, .opp-chip {
   display: inline-flex; align-items: center; gap: 8px;

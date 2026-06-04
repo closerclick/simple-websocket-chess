@@ -52,8 +52,9 @@
                 <span v-if="r.isContact" class="tag friend">{{ t.friend }}</span>
               </span>
               <span class="host-rep">
-                <template v-if="(r.hostScore || 0) > 0">★ {{ (r.hostScore * 5).toFixed(1) }} {{ t.reputation }}</template>
-                <template v-else>{{ t.newPlayer }}</template>
+                <span v-if="r.hostElo" class="elo-mini">ELO {{ r.hostElo }}</span>
+                <template v-if="(r.hostScore || 0) > 0"> · ★ {{ (r.hostScore * 5).toFixed(1) }} {{ t.reputation }}</template>
+                <template v-else-if="!r.hostElo">{{ t.newPlayer }}</template>
               </span>
             </div>
           </div>
@@ -200,6 +201,7 @@ watch(() => connectionStore.isConnected, (c) => { if (c) refresh() })
 .host-rep { font-size: 12px; color: var(--color-text-tertiary); }
 .tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 6px; border-radius: 6px; }
 .tag.friend { background: rgba(205,163,80,.18); color: var(--color-primary-light); }
+.elo-mini { color: var(--color-primary-light); font-weight: 700; font-family: var(--font-mono); }
 
 .room-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
 .stat { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--color-surface-variant); color: var(--color-text-secondary); white-space: nowrap; }

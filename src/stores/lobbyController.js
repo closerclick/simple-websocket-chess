@@ -48,6 +48,11 @@ const connectionError = ref(null)
 const nickModalOpen = ref(false)
 let pendingNickAction = null
 
+// ELO (habilidad por juego) — vive en el registro de reputación compartido.
+const myElo = ref(null)               // { elo, games } del jugador local
+const _eloCache = new Map()           // pubkey → { v:{elo,games}, ts }
+const ELO_TTL = 60000
+
 // estado de UI local (selección de pieza) — no viaja por el motor
 const selectedPiece = ref(null)
 const validMoves = ref([])
@@ -97,6 +102,42 @@ async function refreshPeers () {
   peerIdentities.value = next
 }
 
+// ── ELO ─────────────────────────────────────────────────────────────
+// Devuelve { elo, games } o null si el registro/ELO no está disponible (p.ej.
+// reputation < 0.4.0): así la UI no muestra un ELO falso.
+async function eloOf (pubkey) {
+  if (!pubkey || !reputation || typeof reputation.eloOf !== 'function') return null
+  const hit = _eloCache.get(pubkey)
+  if (hit && (Date.now() - hit.ts) < ELO_TTL) return hit.v
+  let v = null
+  try { v = await reputation.eloOf(pubkey, GAME_ID) } catch (_) { v = null }
+  if (v) _eloCache.set(pubkey, { v, ts: Date.now() })
+  return v
+}
+async function loadMyElo () {
+  if (!myPubkey.value) return
+  _eloCache.delete(myPubkey.value)
+  myElo.value = await eloOf(myPubkey.value)
+}
+// Reporta el resultado co-firmado al registro (idempotente: ambos lo envían) y
+// refresca el ELO propio con lo que devuelve el server.
+async function onResult (ev) {
+  if (!reputation || typeof reputation.reportResult !== 'function' || !ev?.coSigned) return
+  try {
+    const res = await reputation.reportResult(ev.coSigned)
+    const meIsA = samePubkeyStr(ev.a, myPubkey.value)
+    const mine = meIsA ? res.a : res.b
+    if (mine) { myElo.value = mine; _eloCache.set(myPubkey.value, { v: mine, ts: Date.now() }) }
+    // invalidar la caché del rival para que su ELO nuevo se vea en el lobby
+    _eloCache.delete(meIsA ? ev.b : ev.a)
+  } catch (_) {}
+}
+function samePubkeyStr (a, b) {
+  if (!a || !b) return false
+  if (a === b) return true
+  try { const pa = JSON.parse(a), pb = JSON.parse(b); return pa.x === pb.x && pa.y === pb.y && pa.crv === pb.crv } catch (_) { return false }
+}
+
 // ── conexión / lobby ───────────────────────────────────────────────
 async function connect () {
   if (lobby) { connected.value = true; return true }
@@ -124,6 +165,7 @@ async function connect () {
   // refrescar lista de salas cuando cambia el canal de descubrimiento
   lobby.on('rooms-changed', () => { listPublicHosts() })
   await refreshIdentity()
+  loadMyElo()
   return true
 }
 
@@ -133,6 +175,7 @@ function _bind (r) {
   const refresh = () => { snapshot.value = { ...r.state }; refreshPeers() }
   r.on('update', refresh)
   r.on('ended', refresh)
+  r.on('result', onResult) // resultado co-firmado → reportar para ELO
   r.on('closed', () => { connectionError.value = 'La sala se cerró'; refresh() })
   refresh()
   return r
@@ -192,6 +235,8 @@ async function listPublicHosts () {
     // resuelve apenas responden los hosts; los eventos de watch mantienen la
     // lista fresca, así que la ventana corta no se nota.
     const rooms = await lobby.listRooms({ timeout: 900 })
+    // Enriquecer con el ELO del host (cacheado por pubkey).
+    await Promise.all(rooms.map(async (r) => { if (r.hostPubkey) { const e = await eloOf(r.hostPubkey); if (e) r.hostElo = e.elo } }))
     publicRooms.value = rooms
     publicHosts.value = rooms.map(r => r.roomId)
     lastPublicHostsUpdate.value = Date.now()
@@ -363,6 +408,8 @@ export const lobbyController = {
   setPeerNickname, getReputation,
   // nickname requerido
   hasNick, nickModalOpen, requireNick, submitNick, cancelNick,
+  // ELO
+  myElo, eloOf,
   // juego
   board, currentTurn, moveHistory, timers, winner, gameStatus, seats, spectators,
   spectatorsCount, mySeatColor, playerColor, isSeated, isSpectator, isMyTurn,

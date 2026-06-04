@@ -58,6 +58,9 @@ export const useConnectionStore = defineStore('connection', () => {
     requireNick: c.requireNick,
     submitNick: c.submitNick,
     cancelNick: c.cancelNick,
+    // ELO
+    myElo: c.myElo,
+    eloOf: c.eloOf,
     // legacy
     setOpponentToken, clearError, reset
   }
