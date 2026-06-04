@@ -5,6 +5,7 @@ import PhaserChessGame from './components/chess/PhaserChessGame.vue'
 import UserSettingsModal from './components/identity/UserSettingsModal.vue'
 import PeerRatingModal from './components/identity/PeerRatingModal.vue'
 import { computeDerivedRating } from './utils/rating'
+import { t, lang, toggleLang } from './i18n'
 import { useGameStore } from './stores/gameStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useHostGameStore } from '@/stores/hostGameStore'
@@ -276,11 +277,8 @@ watch(() => connectionStore.nickModalOpen, (open) => {
   if (open) setTimeout(() => { try { nickInput.value?.focus() } catch (_) {} }, 50)
 })
 
-const STATUS_LABELS = {
-  waiting: 'Esperando jugadores', playing: 'En juego', check: '¡Jaque!',
-  checkmate: 'Jaque mate', stalemate: 'Tablas (ahogado)', paused: 'En pausa', finished: 'Partida terminada'
-}
-const statusLabel = (s) => STATUS_LABELS[s] || s
+const statusLabel = (s) => t.value.status[s] || s
+const colorName = (c) => (c === 'white' ? t.value.white : t.value.black)
 
 // Conectar automáticamente al montar el componente. Pedimos el nick recién
 // después de conectar+hidratar identidad (el vault puede traer un nick guardado).
@@ -297,40 +295,42 @@ onMounted(async () => {
       <div class="brand">
         <span class="brand-mark">♞</span>
         <div class="brand-text">
-          <span class="brand-name">Ajedrez</span>
+          <span class="brand-name">{{ t.brand }}</span>
           <span class="brand-sub">closer.click</span>
         </div>
       </div>
 
       <div class="hdr-actions">
-        <button v-if="currentView !== 'lobby'" class="ghost-btn" @click="returnToLobby">← Lobby</button>
+        <button v-if="currentView !== 'lobby'" class="ghost-btn" @click="returnToLobby">← {{ t.lobby }}</button>
 
-        <button v-if="opponentInfo" class="opp-chip" @click="openOpponentRating" title="Ver / calificar al oponente">
+        <button v-if="opponentInfo" class="opp-chip" @click="openOpponentRating" title="opp">
           <span class="opp-vs">vs</span>
-          <span class="opp-name">{{ opponentInfo.peer?.nickname || opponentInfo.announcedNickname || 'Oponente' }}</span>
+          <span class="opp-name">{{ opponentInfo.peer?.nickname || opponentInfo.announcedNickname || '—' }}</span>
           <span v-if="opponentRating.value != null" class="rating-badge" :class="{ derived: opponentRating.source === 'derived' }">
             ★ {{ opponentRating.value.toFixed(opponentRating.source === 'derived' ? 1 : 0) }}
           </span>
         </button>
 
-        <button class="me-chip" @click="settingsOpen = true" title="Tu identidad">
+        <button class="me-chip" @click="settingsOpen = true" :title="t.identity">
           <span class="dot" :class="connectionStore.isConnected ? 'on' : 'off'"></span>
-          <span class="me-name">@{{ connectionStore.myNickname || 'sin nombre' }}</span>
+          <span class="me-name">@{{ connectionStore.myNickname || t.noName }}</span>
         </button>
 
-        <closer-click-support class="hdr-coin" href="https://ko-fi.com/closerclick" repo="closerclick/simple-websocket-chess" discord="https://discord.gg/D648uq7cth"></closer-click-support>
+        <button class="lang-btn" @click="toggleLang" :title="lang === 'es' ? 'English' : 'Español'">{{ lang === 'es' ? 'EN' : 'ES' }}</button>
+
+        <closer-click-support class="hdr-coin" :lang="lang" href="https://ko-fi.com/closerclick" repo="closerclick/simple-websocket-chess" discord="https://discord.gg/D648uq7cth"></closer-click-support>
       </div>
     </header>
 
     <div v-if="connectionStore.nickModalOpen" class="nick-overlay">
       <div class="nick-card">
         <div class="nick-mark">♚</div>
-        <h2>Elegí tu nombre</h2>
-        <p class="nick-sub">Así te ven los demás en la mesa. Podés cambiarlo cuando quieras — tu identidad real es tu clave criptográfica.</p>
-        <input ref="nickInput" v-model="nickDraft" maxlength="20" placeholder="ej. magnus_2026" @keyup.enter="submitNickname" />
+        <h2>{{ t.nickTitle }}</h2>
+        <p class="nick-sub">{{ t.nickSub }}</p>
+        <input ref="nickInput" v-model="nickDraft" maxlength="20" :placeholder="t.nickPlaceholder" @keyup.enter="submitNickname" />
         <div class="nick-row">
           <span class="nick-count">{{ nickDraft.trim().length }} / 20</span>
-          <button class="primary" :disabled="nickDraft.trim().length < 2" @click="submitNickname">Entrar →</button>
+          <button class="primary" :disabled="nickDraft.trim().length < 2" @click="submitNickname">{{ t.nickEnter }}</button>
         </div>
       </div>
     </div>
@@ -359,20 +359,20 @@ onMounted(async () => {
             <div class="turn-line" v-if="gameStore.gameStatus !== 'waiting'">
               <span class="turn-dot" :class="gameStore.currentTurn"></span>
               <span class="turn-text">
-                Mueven {{ gameStore.currentTurn === 'white' ? 'Blancas' : 'Negras' }}<strong v-if="gameStore.isMyTurn"> · tu turno</strong>
+                {{ t.toMove(colorName(gameStore.currentTurn)) }}<strong v-if="gameStore.isMyTurn"> {{ t.yourTurn }}</strong>
               </span>
             </div>
             <div class="state-pill" :data-state="gameStore.gameStatus">{{ statusLabel(gameStore.gameStatus) }}</div>
-            <div v-if="gameStore.winner" class="winner-line">Ganan las {{ gameStore.winner === 'white' ? 'Blancas' : 'Negras' }} 🏆</div>
+            <div v-if="gameStore.winner" class="winner-line">{{ t.win(colorName(gameStore.winner)) }}</div>
           </div>
 
           <div class="panel-card moves-card">
-            <h4>Movimientos</h4>
+            <h4>{{ t.moves }}</h4>
             <ol class="moves">
               <li v-for="(m, i) in gameStore.moveHistory" :key="i">
                 <span class="mv-n">{{ i + 1 }}</span><span class="mv-san">{{ m.notation || '—' }}</span>
               </li>
-              <li v-if="!gameStore.moveHistory.length" class="moves-empty">Sin movimientos aún</li>
+              <li v-if="!gameStore.moveHistory.length" class="moves-empty">{{ t.noMoves }}</li>
             </ol>
           </div>
         </aside>
@@ -406,6 +406,8 @@ onMounted(async () => {
 .hdr-actions { display: flex; align-items: center; gap: 10px; }
 .ghost-btn { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-secondary); padding: 7px 12px; border-radius: 999px; font-size: 13px; }
 .ghost-btn:hover { color: var(--color-text); border-color: var(--color-border-dark); }
+.lang-btn { background: var(--color-surface-variant); border: 1px solid var(--color-border); color: var(--color-text-secondary); padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: .03em; }
+.lang-btn:hover { color: var(--color-text); border-color: var(--color-primary); }
 
 .me-chip, .opp-chip {
   display: inline-flex; align-items: center; gap: 8px;

@@ -3,19 +3,19 @@
     <!-- Crear partida -->
     <section class="create card">
       <div class="create-head">
-        <h2>Jugá una partida</h2>
-        <p>Creá una mesa y compartila, o unite a una de las públicas.</p>
+        <h2>{{ t.playTitle }}</h2>
+        <p>{{ t.playSub }}</p>
       </div>
       <div class="create-row">
         <div class="vis-toggle" role="tablist">
-          <button :class="{ on: !isPrivate }" @click="isPrivate = false">🌐 Pública</button>
-          <button :class="{ on: isPrivate }" @click="isPrivate = true">🔒 Privada</button>
+          <button :class="{ on: !isPrivate }" @click="isPrivate = false">🌐 {{ t.public }}</button>
+          <button :class="{ on: isPrivate }" @click="isPrivate = true">🔒 {{ t.private }}</button>
         </div>
-        <button class="primary create-btn" @click="createGame">Crear partida →</button>
+        <button class="primary create-btn" @click="createGame">{{ t.createGame }}</button>
       </div>
       <div class="manual">
-        <input v-model="manualToken" placeholder="¿Tenés un código de mesa? Pegalo acá" @keyup.enter="joinManual" />
-        <button @click="joinManual" :disabled="manualToken.trim().length < 3">Unirse</button>
+        <input v-model="manualToken" :placeholder="t.codePlaceholder" @keyup.enter="joinManual" />
+        <button @click="joinManual" :disabled="manualToken.trim().length < 3">{{ t.join }}</button>
       </div>
       <p v-if="errorMessage" class="err">{{ errorMessage }} <button class="link" @click="errorMessage = ''">✕</button></p>
     </section>
@@ -24,22 +24,22 @@
     <section class="rooms">
       <header class="rooms-head">
         <div class="rooms-title">
-          <h3>Mesas públicas</h3>
+          <h3>{{ t.publicTables }}</h3>
           <span class="count">{{ rooms.length }}</span>
         </div>
         <div class="rooms-tools">
           <label class="open-filter" :class="{ on: onlyOpen }">
             <input type="checkbox" v-model="onlyOpen" />
-            Sólo con lugar<span v-if="openCount"> ({{ openCount }})</span>
+            {{ t.openOnly }}<span v-if="openCount"> ({{ openCount }})</span>
           </label>
-          <span class="conn"><span class="dot" :class="connectionStore.isConnected ? 'on' : 'off'"></span>{{ connectionStore.isConnected ? 'En línea' : 'Conectando…' }}</span>
+          <span class="conn"><span class="dot" :class="connectionStore.isConnected ? 'on' : 'off'"></span>{{ connectionStore.isConnected ? t.online : t.connecting }}</span>
         </div>
       </header>
 
       <div v-if="!rooms.length" class="empty">
         <div class="empty-mark">♟</div>
-        <p>{{ onlyOpen ? 'No hay mesas con lugar ahora.' : 'No hay mesas públicas todavía.' }}</p>
-        <p class="empty-sub">Creá una y esperá rival — aparecerá acá para todos.</p>
+        <p>{{ onlyOpen ? t.emptyOpen : t.emptyAll }}</p>
+        <p class="empty-sub">{{ t.emptySub }}</p>
       </div>
 
       <ul v-else class="room-list">
@@ -49,11 +49,11 @@
             <div class="host-meta">
               <span class="host-name">
                 {{ hostLabel(r) }}
-                <span v-if="r.isContact" class="tag friend">amigo</span>
+                <span v-if="r.isContact" class="tag friend">{{ t.friend }}</span>
               </span>
               <span class="host-rep">
-                <template v-if="(r.hostScore || 0) > 0">★ {{ (r.hostScore * 5).toFixed(1) }} reputación</template>
-                <template v-else>jugador nuevo</template>
+                <template v-if="(r.hostScore || 0) > 0">★ {{ (r.hostScore * 5).toFixed(1) }} {{ t.reputation }}</template>
+                <template v-else>{{ t.newPlayer }}</template>
               </span>
             </div>
           </div>
@@ -64,7 +64,7 @@
           </div>
 
           <button class="join" :class="{ primary: openSeats(r) }" :disabled="!canJoin(r)" @click="joinGame(r.roomId)">
-            {{ openSeats(r) ? 'Unirse' : 'Mirar' }}
+            {{ openSeats(r) ? t.join : t.watch }}
           </button>
         </li>
       </ul>
@@ -75,6 +75,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useConnectionStore } from '@/stores/connectionStore'
+import { t } from '@/i18n'
 
 const connectionStore = useConnectionStore()
 
@@ -99,17 +100,17 @@ const rooms = computed(() => {
 })
 const openCount = computed(() => (connectionStore.publicRooms || []).filter(openSeats).length)
 
-const hostLabel = (r) => r.hostName || (r.isContact ? 'Tu contacto' : 'Anfitrión')
+const hostLabel = (r) => r.hostName || (r.isContact ? t.value.yourContact : t.value.host)
 const hostInitials = (r) => {
   const n = r.hostName || ''
   return n ? n.replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '♟' : '♟'
 }
 const statusText = (r) => {
-  if (r.status === 'playing') return 'En juego'
-  if (r.status === 'paused') return 'En pausa'
-  if (r.status === 'ended') return 'Terminada'
+  if (r.status === 'playing') return t.value.status.playing
+  if (r.status === 'paused') return t.value.status.paused
+  if (r.status === 'ended') return t.value.status.finished
   const n = r.openSeats || 0
-  return n > 0 ? `${n} lugar${n > 1 ? 'es' : ''} libre${n > 1 ? 's' : ''}` : 'Completa'
+  return n > 0 ? t.value.seatsFree(n) : t.value.full
 }
 const statusClass = (r) => (openSeats(r) ? 'open' : (r.status === 'playing' ? 'playing' : 'busy'))
 const canJoin = (r) => r.status !== 'ended'
@@ -122,12 +123,12 @@ const joinGame = (roomId) => connectionStore.requireNick(async () => {
   errorMessage.value = ''
   connectionStore.setMode('guest')
   const ok = await connectionStore.subscribeToHost(roomId)
-  if (!ok) { errorMessage.value = 'No se pudo unir a la mesa.'; connectionStore.setMode(null) }
+  if (!ok) { errorMessage.value = t.value.errJoin; connectionStore.setMode(null) }
 })
 const joinManual = () => {
-  const t = manualToken.value.trim()
-  if (t.length < 3) { errorMessage.value = 'Código de mesa inválido.'; return }
-  joinGame(t)
+  const code = manualToken.value.trim()
+  if (code.length < 3) { errorMessage.value = t.value.errCode; return }
+  joinGame(code)
 }
 
 const refresh = () => { if (connectionStore.isConnected) connectionStore.listPublicHosts() }
