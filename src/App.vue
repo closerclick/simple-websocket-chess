@@ -7,6 +7,7 @@ import PeerRatingModal from './components/identity/PeerRatingModal.vue'
 import { computeDerivedRating } from './utils/rating'
 import { t, lang, toggleLang } from './i18n'
 import { useBackLayer } from '@closerclick/closer-click-nav/vue'
+import '@closerclick/closer-click-share'
 import { useGameStore } from './stores/gameStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useHostGameStore } from '@/stores/hostGameStore'
@@ -35,6 +36,20 @@ const onResize = () => { boardSize.value = computeBoardSize() }
 // Identity / rating UI
 const settingsOpen = ref(false)
 const ratingTarget = ref(null)
+
+// Compartir partida: link directo (#table=<token>) + QR + redes, vía el Web
+// Component compartido del ecosistema. El link abre la partida al cargar.
+const shareOpen = ref(false)
+const shareUrl = computed(() => {
+  const tk = connectionStore.token
+  return tk ? `${location.origin}${location.pathname}#table=${encodeURIComponent(tk)}` : ''
+})
+const shareTheme = {
+  '--ccs-bg': 'var(--color-card-bg, #1c1c1e)', '--ccs-text': 'var(--color-text, #f2f2f2)',
+  '--ccs-muted': 'var(--color-text-secondary, #9a9a9a)', '--ccs-border': 'var(--color-border, rgba(255,255,255,.12))',
+  '--ccs-accent': 'var(--color-primary, #cda350)', '--ccs-accent-text': '#1c1c1e',
+  '--ccs-input-bg': 'var(--color-background, #111)'
+}
 
 // Volver unificado (@closerclick/closer-click-nav): el botón físico / chevron
 // cierra el modal abierto, o vuelve del tablero al lobby, antes de salir a
@@ -335,6 +350,7 @@ onMounted(async () => {
 
       <div class="hdr-actions">
         <button v-if="currentView !== 'lobby'" class="ghost-btn" @click="returnToLobby">← {{ t.lobby }}</button>
+        <button v-if="currentView !== 'lobby' && connectionStore.token" class="ghost-btn" @click="shareOpen = true" data-testid="share-table">{{ t.shareTable }}</button>
 
         <button v-if="opponentInfo" class="opp-chip" @click="openOpponentRating" :title="t.rateOpponent">
           <span class="opp-vs">vs</span>
@@ -377,6 +393,16 @@ onMounted(async () => {
 
     <UserSettingsModal :open="settingsOpen" @close="settingsOpen = false" />
     <PeerRatingModal :info="ratingTarget" @close="ratingTarget = null" />
+
+    <!-- Compartir partida: Web Component compartido del ecosistema -->
+    <closer-click-share
+      :lang="lang"
+      :style="shareTheme"
+      :url="shareUrl"
+      :text="t.shareTableText"
+      :open="shareOpen"
+      @cc-share-close="shareOpen = false"
+    ></closer-click-share>
 
     <!-- Mi perfil (botón del header, a la izquierda de la moneda): mismo Web
          Component compartido en modo self con mi identidad del vault. -->
