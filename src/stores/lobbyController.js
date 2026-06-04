@@ -39,7 +39,9 @@ const publicHosts = ref([])           // roomIds (tokens de hosts) del canal de 
 const publicRooms = ref([])           // resúmenes enriquecidos (host, asientos, viewers, isContact)
 const lastPublicHostsUpdate = ref(null)
 const myPubkey = ref(null)
-const myNickname = ref(localStorage.getItem('chess_nickname') || '')
+// El nickname vive ÚNICAMENTE en el vault de identidad (id.closer.click); este
+// ref es solo su espejo reactivo. Sin copia paralela en localStorage.
+const myNickname = ref('')
 const peerIdentities = ref(new Map()) // pubkey → { pubkey, peer, announcedNickname }
 const trustMap = ref(new Map())       // pubkey → rating 0..5
 const connectionError = ref(null)
@@ -256,7 +258,12 @@ function requireNick (fn) {
 async function submitNick (v) {
   const name = (v || '').trim()
   if (name.length < 2) return false
-  await setMyNickname(name)
+  try {
+    await setMyNickname(name)
+  } catch (e) {
+    console.warn('No se pudo guardar el nick en tu identidad:', e?.message || e)
+    return false
+  }
   nickModalOpen.value = false
   const a = pendingNickAction; pendingNickAction = null
   if (a) { try { await a() } catch (_) {} }
@@ -269,10 +276,11 @@ function disconnect () { setMode(null); connected.value = false }
 // ── identidad / reputación (UI de perfil/rating) ───────────────────
 async function setMyNickname (nick) {
   const v = (nick || '').trim().slice(0, 20)
-  myNickname.value = v
-  localStorage.setItem('chess_nickname', v)
   await ensureIdentity()
-  if (identity) { try { await identity.setMyNickname(v) } catch (_) {} }
+  // La identidad es la única fuente: sin vault no se guarda el nick (lanza).
+  if (!identity) throw new Error('Identity vault not available')
+  await identity.setMyNickname(v)
+  myNickname.value = identity.me?.nickname || v
 }
 async function ratePeer (pubkey, rating, notes) {
   await ensureIdentity()
