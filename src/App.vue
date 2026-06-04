@@ -350,7 +350,6 @@ onMounted(async () => {
 
       <div class="hdr-actions">
         <button v-if="currentView !== 'lobby'" class="ghost-btn" @click="returnToLobby">← {{ t.lobby }}</button>
-        <button v-if="currentView !== 'lobby' && connectionStore.token" class="ghost-btn" @click="shareOpen = true" data-testid="share-table">{{ t.shareTable }}</button>
 
         <button v-if="opponentInfo" class="opp-chip" @click="openOpponentRating" :title="t.rateOpponent">
           <span class="opp-vs">vs</span>
@@ -425,7 +424,7 @@ onMounted(async () => {
 
       <section v-else class="game-shell">
         <div class="board-wrap" :class="{ active: canShowGame }">
-          <PhaserChessGame v-if="canShowGame" :board-size="boardSize" class="chess-game" />
+          <PhaserChessGame v-if="canShowGame" :board-size="boardSize" class="chess-game" @share="shareOpen = true" />
           <div v-else class="board-skeleton">
             <div class="mini-board">
               <div v-for="i in 64" :key="i" class="sq" :class="{ light: (Math.floor((i - 1) / 8) + ((i - 1) % 8)) % 2 === 0 }"></div>

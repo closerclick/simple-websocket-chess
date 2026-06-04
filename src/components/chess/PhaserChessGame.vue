@@ -137,6 +137,7 @@
       </div>
       <div class="spectators-info">
         {{ t.spectators }}: {{ spectatorsCount }} 👁️
+        <button class="share-table-btn" @click="emit('share')" data-testid="share-table">{{ t.shareTable }}</button>
       </div>
     </div>
   </div>
@@ -157,6 +158,7 @@ const props = defineProps({
     default: 800
   }
 })
+const emit = defineEmits(['share'])
 
 // Refs
 const gameContainer = ref(null)
@@ -1031,7 +1033,21 @@ defineExpose({
 .spectators-info {
   font-size: 14px;
   color: var(--color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
+.share-table-btn {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--color-primary, #cda350);
+  background: transparent;
+  color: var(--color-primary, #cda350);
+  cursor: pointer;
+}
+.share-table-btn:hover { background: var(--color-primary, #cda350); color: #1c1c1e; }
 
 .loading-overlay,
 .error-overlay {
