@@ -69,6 +69,29 @@ const openOpponentRating = () => {
   ratingTarget.value = opponentInfo.value
 }
 
+// "Mi perfil": botón del header (a la izquierda de la moneda de soporte) que abre
+// el MISMO Web Component compartido en modo self con mi identidad del vault.
+const myProfilePk = ref(null)
+async function openMyProfile () {
+  await connectionStore.refreshIdentity?.()
+  const pk = connectionStore.myPubkey
+  if (pk) myProfilePk.value = pk
+}
+function bindMyProfile (el) {
+  if (!el) return
+  connectionStore.getProfileProvider().then((p) => { if (p) el.provider = p })
+}
+useBackLayer(myProfilePk, { onClose: () => { myProfilePk.value = null } })
+const profileTheme = {
+  '--ccp-bg': 'var(--color-card-bg)', '--ccp-bg-2': 'var(--color-surface)',
+  '--ccp-bg-3': 'var(--color-surface-variant)', '--ccp-bg-4': 'var(--color-border-light)',
+  '--ccp-border': 'var(--color-border)', '--ccp-text': 'var(--color-text)',
+  '--ccp-muted': 'var(--color-text-secondary)', '--ccp-accent': 'var(--color-primary)',
+  '--ccp-accent-2': 'var(--color-primary-dark)', '--ccp-derived': '#d49a00', '--ccp-gold': '#f5b301',
+  '--ccp-online': 'var(--color-success)', '--ccp-affinity': 'var(--color-secondary)',
+  '--ccp-input-bg': 'var(--color-background)', '--ccp-radius': '10px',
+}
+
 onMounted(() => {
   connectionStore.refreshIdentity?.()
   window.addEventListener('resize', onResize)
@@ -329,6 +352,12 @@ onMounted(async () => {
 
         <button class="lang-btn" @click="toggleLang" :title="lang === 'es' ? 'English' : 'Español'">{{ lang === 'es' ? 'EN' : 'ES' }}</button>
 
+        <button class="profile-btn" data-testid="my-profile" @click="openMyProfile" :title="t.identity" aria-label="Mi perfil">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6" />
+          </svg>
+        </button>
+
         <closer-click-support class="hdr-coin" :lang="lang" href="https://ko-fi.com/closerclick" repo="closerclick/simple-websocket-chess" discord="https://discord.gg/D648uq7cth"></closer-click-support>
       </div>
     </header>
@@ -348,6 +377,20 @@ onMounted(async () => {
 
     <UserSettingsModal :open="settingsOpen" @close="settingsOpen = false" />
     <PeerRatingModal :info="ratingTarget" @close="ratingTarget = null" />
+
+    <!-- Mi perfil (botón del header, a la izquierda de la moneda): mismo Web
+         Component compartido en modo self con mi identidad del vault. -->
+    <closer-click-profile
+      v-if="myProfilePk"
+      :ref="bindMyProfile"
+      modal
+      mode="self"
+      :lang="lang"
+      :style="profileTheme"
+      :pubkey="myProfilePk"
+      :name="connectionStore.myNickname || ''"
+      @cc-profile-close="myProfilePk = null"
+    ></closer-click-profile>
 
     <main class="main">
       <section v-if="currentView === 'lobby'" class="lobby-shell">
@@ -420,6 +463,15 @@ onMounted(async () => {
 .ghost-btn:hover { color: var(--color-text); border-color: var(--color-border-dark); }
 .lang-btn { background: var(--color-surface-variant); border: 1px solid var(--color-border); color: var(--color-text-secondary); padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: .03em; }
 .lang-btn:hover { color: var(--color-text); border-color: var(--color-primary); }
+/* "Mi perfil": botón circular ghost a la izquierda de la moneda de soporte. */
+.profile-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; padding: 0; flex-shrink: 0;
+  background: var(--color-surface-variant); border: 1px solid var(--color-border);
+  color: var(--color-text-secondary); border-radius: 50%; cursor: pointer;
+}
+.profile-btn svg { width: 18px; height: 18px; display: block; }
+.profile-btn:hover { color: var(--color-text); border-color: var(--color-primary); }
 .elo-badge { background: var(--color-primary); color: #1a1408; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 700; font-family: var(--font-mono); }
 
 .me-chip, .opp-chip {

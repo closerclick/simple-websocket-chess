@@ -14,6 +14,7 @@ import { createLobby, STATUS, discoveryChannel } from '@closerclick/closer-click
 import { getWebSocketProxyClient } from '@closerclick/closer-click-proxy-client'
 import { Identity } from '@closerclick/closer-click-identity'
 import { createVaultReputation } from '@closerclick/closer-click-reputation'
+import { createVaultProfileProvider } from '@closerclick/closer-click-profile'
 import * as rules from '@/utils/chessRules'
 import { getValidMoves, getAlgebraicNotation } from '@/stores/sharedGameLogic'
 import { makeChessEngine } from '@/game/chessAdapter'
@@ -27,6 +28,7 @@ const engine = makeChessEngine({ ...rules, getAlgebraicNotation })
 let lobby = null
 let identity = null
 let reputation = null
+let profileProvider = null
 
 const room = shallowRef(null)
 const snapshot = ref(null)            // room.state
@@ -314,6 +316,15 @@ async function setPeerNickname (pubkey, nick) {
   return updated
 }
 function getReputation () { return reputation }
+// Provider para el Web Component compartido <closer-click-profile> (mismo del
+// ecosistema): datos del vault + reputación de la nube. Para "mi perfil" propio.
+async function getProfileProvider () {
+  if (profileProvider) return profileProvider
+  await ensureIdentity()
+  if (!identity) return null
+  try { profileProvider = createVaultProfileProvider({ identity, reputation }) } catch (_) { profileProvider = null }
+  return profileProvider
+}
 
 // ── juego ──────────────────────────────────────────────────────────
 function _board () { return snapshot.value?.game?.board || rules.createInitialBoard() }
@@ -428,7 +439,7 @@ export const lobbyController = {
   lastPublicHostsUpdate, connectionError, connectionStatus, canPlay,
   // identidad / reputación
   myPubkey, myNickname, peerIdentities, trustMap, setMyNickname, ratePeer,
-  setPeerNickname, getReputation,
+  setPeerNickname, getReputation, getProfileProvider,
   // nickname requerido
   hasNick, nickModalOpen, requireNick, submitNick, cancelNick,
   // ELO

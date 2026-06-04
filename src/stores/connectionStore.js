@@ -52,6 +52,7 @@ export const useConnectionStore = defineStore('connection', () => {
     setPeerNickname: c.setPeerNickname,
     ratePeer: c.ratePeer,
     getReputation: c.getReputation,
+    getProfileProvider: c.getProfileProvider,
     // nickname requerido
     hasNick: c.hasNick,
     nickModalOpen: c.nickModalOpen,
