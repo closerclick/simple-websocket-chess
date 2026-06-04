@@ -73,7 +73,22 @@ async function refreshIdentity () {
   await ensureIdentity()
   if (!identity) return
   myPubkey.value = identity.me?.publickey || null
-  if (identity.me?.nickname) myNickname.value = identity.me.nickname
+  if (identity.me?.nickname) {
+    myNickname.value = identity.me.nickname
+  } else {
+    // Migración única: el chess viejo guardaba el nick solo en
+    // localStorage('chess_nickname'), nunca en el vault. Si el vault no lo tiene
+    // y existe el legado, lo subimos al vault (única fuente) y borramos la copia
+    // local — así los usuarios existentes no tienen que volver a teclearlo.
+    const legacy = (localStorage.getItem('chess_nickname') || '').trim().slice(0, 20)
+    if (legacy) {
+      try {
+        await identity.setMyNickname(legacy)
+        myNickname.value = identity.me?.nickname || legacy
+        localStorage.removeItem('chess_nickname')
+      } catch (_) { /* reintenta en el próximo arranque */ }
+    }
+  }
   try {
     const all = await identity.listPeers()
     const next = new Map()
