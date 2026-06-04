@@ -4,12 +4,12 @@
     <div class="seat-bar black-seat-bar" :style="{ order: isFlipped ? 3 : 1 }">
       <div v-if="seats.black.occupied" class="seat-info occupied" :class="{ 'inactive-turn': gameStatus === 'playing' && currentTurn !== 'black' }">
         <span class="seat-icon">♚</span>
-        <span class="player-name">{{ seats.black.playerName || 'Jugador' }}</span>
+        <span class="player-name">{{ seats.black.playerName || t.player }}</span>
         
         <div class="player-indicators">
-          <span v-if="gameStatus === 'check' && currentTurn === 'black'" class="check-indicator pulse-animation" title="¡Jaque!">❌</span>
+          <span v-if="gameStatus === 'check' && currentTurn === 'black'" class="check-indicator pulse-animation" :title="t.checkTitle">❌</span>
           <span class="player-timer">{{ formatTime(localTimers.black) }}</span>
-          <span v-if="currentTurn === 'black' && (gameStatus === 'playing' || gameStatus === 'check')" class="turn-indicator" title="Tu turno">🟢</span>
+          <span v-if="currentTurn === 'black' && (gameStatus === 'playing' || gameStatus === 'check')" class="turn-indicator" :title="t.yourTurnTitle">🟢</span>
         </div>
 
         <button 
@@ -17,17 +17,17 @@
           @click="leaveSeat" 
           class="leave-seat-btn"
         >
-          Dejar Asiento
+          {{ t.leaveSeat }}
         </button>
       </div>
       <div v-else class="seat-info available">
-        <span class="empty-seat">Asiento vacío (Negras)</span>
+        <span class="empty-seat">{{ t.emptySeat(t.black) }}</span>
         <button 
           v-if="!isSeated" 
           @click="occupySeat('black')" 
           class="take-seat-btn black-btn"
         >
-          Ocupar Negras
+          {{ t.takeSeat(t.black) }}
         </button>
       </div>
     </div>
@@ -69,31 +69,31 @@
 
       
       <div v-if="gameStatus === 'checkmate'" class="game-status-overlay checkmate-overlay">
-        <h2>¡Jaque Mate!</h2>
-        <p>Ganan las {{ currentTurn === 'white' ? 'Negras' : 'Blancas' }}</p>
+        <h2>{{ t.checkmateTitle }}</h2>
+        <p>{{ t.winner(currentTurn === 'white' ? t.black : t.white) }}</p>
       </div>
 
       <div v-if="gameStatus === 'stalemate'" class="game-status-overlay stalemate-overlay">
-        <h2>Tablas</h2>
-        <p>Por Ahogado</p>
+        <h2>{{ t.drawTitle }}</h2>
+        <p>{{ t.stalemateReason }}</p>
       </div>
 
       <div v-if="!gameInitialized" class="loading-overlay">
         <div class="loading-spinner"></div>
-        <p>Inicializando juego...</p>
+        <p>{{ t.initializing }}</p>
       </div>
       
       <div v-if="gameError" class="error-overlay">
         <p class="error-message">{{ gameError }}</p>
-        <button @click="retryInitialization" class="retry-button">Reintentar</button>
+        <button @click="retryInitialization" class="retry-button">{{ t.retry }}</button>
       </div>
 
       <!-- Mensajes flotantes del juego sobre el tablero -->
       <div v-if="gameStatus === 'paused'" class="board-message">
-        <p>⏸️ Pausa - Esperando jugador</p>
+        <p>{{ t.pausedMsg }}</p>
       </div>
       <div v-if="gameStatus === 'waiting' && !bothSeatsOccupied" class="board-message warning">
-        <p>⏳ Esperando jugadores</p>
+        <p>{{ t.waitingMsg }}</p>
       </div>
     </div>
 
@@ -101,12 +101,12 @@
     <div class="seat-bar white-seat-bar" :style="{ order: isFlipped ? 1 : 3 }">
       <div v-if="seats.white.occupied" class="seat-info occupied" :class="{ 'inactive-turn': gameStatus === 'playing' && currentTurn !== 'white' }">
         <span class="seat-icon">♔</span>
-        <span class="player-name">{{ seats.white.playerName || 'Jugador' }}</span>
+        <span class="player-name">{{ seats.white.playerName || t.player }}</span>
         
         <div class="player-indicators">
-          <span v-if="gameStatus === 'check' && currentTurn === 'white'" class="check-indicator pulse-animation" title="¡Jaque!">❌</span>
+          <span v-if="gameStatus === 'check' && currentTurn === 'white'" class="check-indicator pulse-animation" :title="t.checkTitle">❌</span>
           <span class="player-timer">{{ formatTime(localTimers.white) }}</span>
-          <span v-if="currentTurn === 'white' && (gameStatus === 'playing' || gameStatus === 'check')" class="turn-indicator" title="Tu turno">🟢</span>
+          <span v-if="currentTurn === 'white' && (gameStatus === 'playing' || gameStatus === 'check')" class="turn-indicator" :title="t.yourTurnTitle">🟢</span>
         </div>
 
         <button 
@@ -114,17 +114,17 @@
           @click="leaveSeat" 
           class="leave-seat-btn"
         >
-          Dejar Asiento
+          {{ t.leaveSeat }}
         </button>
       </div>
       <div v-else class="seat-info available">
-        <span class="empty-seat">Asiento vacío (Blancas)</span>
+        <span class="empty-seat">{{ t.emptySeat(t.white) }}</span>
         <button 
           v-if="!isSeated" 
           @click="occupySeat('white')" 
           class="take-seat-btn white-btn"
         >
-          Ocupar Blancas
+          {{ t.takeSeat(t.white) }}
         </button>
       </div>
     </div>
@@ -136,7 +136,7 @@
         <span class="status-text">{{ playerStatusText }}</span>
       </div>
       <div class="spectators-info">
-        Espectadores: {{ spectatorsCount }} 👁️
+        {{ t.spectators }}: {{ spectatorsCount }} 👁️
       </div>
     </div>
   </div>
@@ -145,6 +145,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import Phaser from 'phaser'
+import { t } from '@/i18n'
 import { useHostGameStore } from '@/stores/hostGameStore'
 import { usePlayerGameStore } from '@/stores/playerGameStore'
 import { useConnectionStore } from '@/stores/connectionStore'
@@ -251,14 +252,14 @@ const spectatorsCount = computed(() => activeStore.value.spectatorsCount)
 // Computed properties para UI
 const playerStatusText = computed(() => {
   if (isSeated.value) {
-    const colorText = mySeatColor.value === 'white' ? 'Blancas' : 'Negras'
-    return `Jugador (${colorText})${isHost.value ? ' [Host]' : ''}`
+    const colorText = mySeatColor.value === 'white' ? t.value.white : t.value.black
+    return `${t.value.player} (${colorText})${isHost.value ? ' [' + t.value.hostTag + ']' : ''}`
   } else if (isSpectator.value) {
-    return 'Espectador'
+    return t.value.roleSpectator
   } else if (isHost.value) {
-    return 'Host (sin asiento)'
+    return t.value.roleHostNoSeat
   } else {
-    return 'Sin asiento'
+    return t.value.roleNoSeat
   }
 })
 

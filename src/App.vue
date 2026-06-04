@@ -303,7 +303,7 @@ onMounted(async () => {
       <div class="hdr-actions">
         <button v-if="currentView !== 'lobby'" class="ghost-btn" @click="returnToLobby">← {{ t.lobby }}</button>
 
-        <button v-if="opponentInfo" class="opp-chip" @click="openOpponentRating" title="opp">
+        <button v-if="opponentInfo" class="opp-chip" @click="openOpponentRating" :title="t.rateOpponent">
           <span class="opp-vs">vs</span>
           <span class="opp-name">{{ opponentInfo.peer?.nickname || opponentInfo.announcedNickname || '—' }}</span>
           <span v-if="opponentRating.value != null" class="rating-badge" :class="{ derived: opponentRating.source === 'derived' }">
@@ -351,7 +351,7 @@ onMounted(async () => {
             <div class="mini-board">
               <div v-for="i in 64" :key="i" class="sq" :class="{ light: (Math.floor((i - 1) / 8) + ((i - 1) % 8)) % 2 === 0 }"></div>
             </div>
-            <p>Esperando para comenzar…</p>
+            <p>{{ t.waitingToStart }}</p>
           </div>
         </div>
 

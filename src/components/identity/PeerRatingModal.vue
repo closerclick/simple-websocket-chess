@@ -4,32 +4,32 @@
       <button class="close-btn" @click="$emit('close')" aria-label="Close">×</button>
 
       <h3 class="modal-title">{{ displayName }}</h3>
-      <div class="modal-token">Token: <code>{{ info.token }}</code></div>
+      <div class="modal-token">{{ t.tokenLabel }}: <code>{{ info.token }}</code></div>
 
       <div v-if="!info.pubkey" class="muted">
-        Esperando verificación de identidad…
+        {{ t.waitingVerify }}
       </div>
 
       <template v-else>
         <!-- Nickname personalizado (propio de ajedrez: sobrescribe el público) -->
         <div class="row">
-          <label>Nickname personalizado</label>
+          <label>{{ t.customNick }}</label>
           <input v-model="customNickname" type="text" maxlength="40"
-                 placeholder="Sobrescribe el nickname público" />
+                 :placeholder="t.customNickPh" />
         </div>
 
         <!-- Tarjeta de perfil + reputación compartida del ecosistema -->
         <closer-click-profile
           ref="profileEl"
           mode="edit"
+          :lang="lang"
           :style="profileTheme"
           :pubkey="info.pubkey"
           :name="displayName"
         ></closer-click-profile>
 
         <div v-if="suspicion" class="suspicion">
-          ⚠ Te ha consultado por {{ suspicion.queriesMade }} personas; conocías
-          {{ suspicion.queriesKnown }}.
+          {{ t.suspicion(suspicion.queriesMade, suspicion.queriesKnown) }}
         </div>
       </template>
     </div>
@@ -38,6 +38,7 @@
 
 <script setup>
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
+import { t, lang } from '@/i18n'
 import { useConnectionStore } from '@/stores/connectionStore'
 import '@closerclick/closer-click-profile'
 

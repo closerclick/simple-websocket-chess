@@ -3,34 +3,31 @@
     <div class="modal">
       <button class="close-btn" @click="$emit('close')" aria-label="Close">×</button>
 
-      <h3 class="modal-title">Tu identidad</h3>
+      <h3 class="modal-title">{{ t.identity }}</h3>
 
       <div class="row">
-        <label>Nickname</label>
+        <label>{{ t.nickLabel }}</label>
         <input
           v-model="nickname"
           type="text"
           maxlength="20"
-          placeholder="Cómo te ven los demás"
+          :placeholder="t.nickPublicPh"
           @input="onNicknameInput"
         />
         <small v-if="nicknameStatus" class="status">{{ nicknameStatus }}</small>
       </div>
 
       <div class="row">
-        <label>Tu pubkey</label>
+        <label>{{ t.yourPubkey }}</label>
         <code class="pubkey">{{ shortPubkey }}</code>
       </div>
 
       <div class="row">
-        <label>Backup de identidad</label>
-        <p class="hint">
-          La llave privada vive solo en tu navegador. Exporta el archivo si quieres
-          conservarla o trasladarla a otro dispositivo.
-        </p>
+        <label>{{ t.idBackup }}</label>
+        <p class="hint">{{ t.idBackupHint }}</p>
         <div class="actions-row">
-          <button class="primary" @click="onExport" :disabled="busy">Exportar identidad</button>
-          <button @click="onImportClick" :disabled="busy">Importar identidad</button>
+          <button class="primary" @click="onExport" :disabled="busy">{{ t.exportId }}</button>
+          <button @click="onImportClick" :disabled="busy">{{ t.importId }}</button>
           <input
             ref="fileInput"
             type="file"
@@ -47,6 +44,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { t } from '@/i18n'
 import { Identity } from '@closerclick/closer-click-identity'
 import { useConnectionStore } from '@/stores/connectionStore'
 
@@ -90,11 +88,11 @@ const onNicknameInput = () => {
 const saveNickname = async () => {
   const v = (nickname.value || '').trim()
   if (v.length < 3) {
-    nicknameStatus.value = 'Mínimo 3 caracteres'
+    nicknameStatus.value = t.value.minChars
     return
   }
   await connectionStore.setMyNickname(v)
-  nicknameStatus.value = 'Guardado'
+  nicknameStatus.value = t.value.saved
   setTimeout(() => { nicknameStatus.value = '' }, 1500)
 }
 
@@ -113,10 +111,10 @@ const onExport = async () => {
     a.click()
     a.remove()
     URL.revokeObjectURL(url)
-    ioStatus.value = 'Identidad exportada'
+    ioStatus.value = t.value.idExported
   } catch (e) {
     ioError.value = true
-    ioStatus.value = 'No se pudo exportar: ' + (e.message || e)
+    ioStatus.value = t.value.exportFail + (e.message || e)
   } finally { busy.value = false }
 }
 
@@ -126,7 +124,7 @@ const onImportFile = async (event) => {
   const file = event.target.files?.[0]
   event.target.value = ''
   if (!file) return
-  if (!confirm('Importar reemplazará tu identidad actual. ¿Continuar?')) return
+  if (!confirm(t.value.importConfirm)) return
   busy.value = true; ioError.value = false; ioStatus.value = ''
   try {
     const text = await file.text()
@@ -138,10 +136,10 @@ const onImportFile = async (event) => {
       await connectionStore.setMyNickname(result.me.nickname)
     }
     await connectionStore.refreshIdentity()
-    ioStatus.value = 'Identidad importada. Recarga la página para sincronizar.'
+    ioStatus.value = t.value.idImported
   } catch (e) {
     ioError.value = true
-    ioStatus.value = 'Archivo inválido: ' + (e.message || e)
+    ioStatus.value = t.value.invalidFile + (e.message || e)
   } finally { busy.value = false }
 }
 </script>
