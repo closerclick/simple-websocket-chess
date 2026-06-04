@@ -126,8 +126,8 @@ async function onResult (ev) {
   try {
     const res = await reputation.reportResult(ev.coSigned)
     const meIsA = samePubkeyStr(ev.a, myPubkey.value)
-    const mine = meIsA ? res.a : res.b
-    if (mine) { myElo.value = mine; _eloCache.set(myPubkey.value, { v: mine, ts: Date.now() }) }
+    const raw = meIsA ? res.a : res.b // { value, count }
+    if (raw) { const mine = { elo: raw.value, games: raw.count }; myElo.value = mine; _eloCache.set(myPubkey.value, { v: mine, ts: Date.now() }) }
     // invalidar la caché del rival para que su ELO nuevo se vea en el lobby
     _eloCache.delete(meIsA ? ev.b : ev.a)
   } catch (_) {}
