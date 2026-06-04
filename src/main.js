@@ -5,6 +5,7 @@ import './style.css'
 import App from './App.vue'
 import '@closerclick/closer-click-support'
 import '@closerclick/closer-click-profile'
+import '@closerclick/closer-click-share'
 import { createBackNav } from '@closerclick/closer-click-nav'
 
 // Navegación "volver" unificada del ecosistema (botón físico de Android / gesto

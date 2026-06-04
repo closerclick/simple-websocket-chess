@@ -15,13 +15,14 @@
               <span class="info-label">Token:</span>
               <div class="token-display">
                 <code class="token-value">{{ connectionStore.shortToken }}</code>
-                <button 
-                  @click="copyToken" 
+                <button
+                  @click="copyToken"
                   class="copy-button"
                   :title="copyButtonText"
                 >
                   {{ copyButtonText }}
                 </button>
+                <button @click="shareOpen = true" class="copy-button" :title="t.shareTable">{{ t.shareTable }}</button>
               </div>
             </div>
             
@@ -137,16 +138,42 @@
       <div class="loading-spinner"></div>
       <p>{{ loadingMessage }}</p>
     </div>
+
+    <!-- Compartir partida: Web Component compartido del ecosistema -->
+    <closer-click-share
+      :lang="lang"
+      :style="shareTheme"
+      :url="shareUrl"
+      :text="t.shareTableText"
+      :open="shareOpen"
+      @cc-share-close="shareOpen = false"
+    ></closer-click-share>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { t, lang } from '@/i18n'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useGameStore } from '@/stores/gameStore'
 import { useHostGameStore } from '@/stores/hostGameStore'
+import '@closerclick/closer-click-share'
 
 const connectionStore = useConnectionStore()
+
+// Compartir partida: link directo (#table=<token>) + QR + redes, vía el Web
+// Component compartido del ecosistema. El link abre la partida al cargar.
+const shareOpen = ref(false)
+const shareUrl = computed(() => {
+  const tk = connectionStore.token
+  return tk ? `${location.origin}${location.pathname}#table=${encodeURIComponent(tk)}` : ''
+})
+const shareTheme = {
+  '--ccs-bg': 'var(--color-card-bg, #1c1c1e)', '--ccs-text': 'var(--color-text, #f2f2f2)',
+  '--ccs-muted': 'var(--color-text-secondary, #9a9a9a)', '--ccs-border': 'var(--color-border, rgba(255,255,255,.12))',
+  '--ccs-accent': 'var(--color-primary, #cda350)', '--ccs-accent-text': '#1c1c1e',
+  '--ccs-input-bg': 'var(--color-background, #111)'
+}
 const gameStore = useGameStore()
 const hostGameStore = useHostGameStore()
 

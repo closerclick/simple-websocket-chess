@@ -185,6 +185,16 @@ async function connect () {
   lobby.on('rooms-changed', () => { listPublicHosts() })
   await refreshIdentity()
   loadMyElo()
+  // Deep-link de partida compartida: #table=<token> → unir directo como guest.
+  try {
+    const m = (location.hash || '').match(/[#&]table=([^&]+)/)
+    if (m && m[1]) {
+      const tk = decodeURIComponent(m[1])
+      history.replaceState(null, '', location.pathname + location.search)
+      mode.value = 'guest'; visibility.value = null
+      subscribeToHost(tk)
+    }
+  } catch (_) {}
   return true
 }
 
