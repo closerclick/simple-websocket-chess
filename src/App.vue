@@ -6,6 +6,7 @@ import UserSettingsModal from './components/identity/UserSettingsModal.vue'
 import PeerRatingModal from './components/identity/PeerRatingModal.vue'
 import { computeDerivedRating } from './utils/rating'
 import { t, lang, toggleLang } from './i18n'
+import { useBackLayer } from '@closerclick/closer-click-nav/vue'
 import { useGameStore } from './stores/gameStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useHostGameStore } from '@/stores/hostGameStore'
@@ -34,6 +35,14 @@ const onResize = () => { boardSize.value = computeBoardSize() }
 // Identity / rating UI
 const settingsOpen = ref(false)
 const ratingTarget = ref(null)
+
+// Volver unificado (@closerclick/closer-click-nav): el botón físico / chevron
+// cierra el modal abierto, o vuelve del tablero al lobby, antes de salir a
+// closer.click. El juego es una "vista" sobre el lobby.
+useBackLayer(settingsOpen)
+useBackLayer(ratingTarget, { onClose: () => { ratingTarget.value = null } })
+const gameOpen = computed(() => currentView.value === 'game')
+useBackLayer(gameOpen, { onClose: () => { currentView.value = 'lobby' } })
 
 const opponentToken = computed(() => {
   if (connectionStore.isGuest) return connectionStore.subscribedHost
@@ -292,6 +301,7 @@ onMounted(async () => {
 <template>
   <div class="app">
     <header class="topbar">
+      <closer-click-back class="cc-back"></closer-click-back>
       <div class="brand">
         <span class="brand-mark">♞</span>
         <div class="brand-text">
@@ -393,7 +403,8 @@ onMounted(async () => {
   background: rgba(28, 23, 16, .82); backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--color-border);
 }
-.brand { display: flex; align-items: center; gap: 11px; }
+.cc-back { color: var(--color-text-on-dark, #f8f9fa); --cc-back-size: 36px; margin-left: -2px; }
+.brand { display: flex; align-items: center; gap: 11px; margin-right: auto; }
 .brand-mark {
   width: 40px; height: 40px; display: grid; place-items: center;
   font-size: 24px; line-height: 1; color: #1a1408;
