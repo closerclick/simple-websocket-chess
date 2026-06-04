@@ -61,7 +61,7 @@
 
           <div class="room-stats">
             <span class="stat" :class="statusClass(r)">{{ statusText(r) }}</span>
-            <span class="stat ghost" title="Espectadores">👁 {{ r.spectators || 0 }}</span>
+            <span class="stat ghost" :title="t.spectators">👁 {{ r.spectators || 0 }}</span>
           </div>
 
           <button class="join" :class="{ primary: openSeats(r) }" :disabled="!canJoin(r)" @click="joinGame(r.roomId)">

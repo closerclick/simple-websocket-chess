@@ -40,6 +40,18 @@
       </div>
     </div>
   </div>
+
+  <!-- Confirmación propia (sin confirm() del navegador) para reemplazar identidad -->
+  <div v-if="confirmImportOpen" class="modal-overlay confirm-layer" @click.self="cancelImport">
+    <div class="modal confirm-modal">
+      <h3 class="modal-title">{{ t.importConfirmTitle }}</h3>
+      <p class="hint">{{ t.importConfirm }}</p>
+      <div class="actions-row end">
+        <button @click="cancelImport">{{ t.cancel }}</button>
+        <button class="primary danger" @click="doImport" :disabled="busy">{{ t.importId }}</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -120,11 +132,26 @@ const onExport = async () => {
 
 const onImportClick = () => fileInput.value?.click()
 
-const onImportFile = async (event) => {
+// El archivo elegido se retiene hasta que el usuario confirme en el modal propio
+// (nada de confirm() del navegador).
+const confirmImportOpen = ref(false)
+let pendingImportFile = null
+
+const onImportFile = (event) => {
   const file = event.target.files?.[0]
   event.target.value = ''
   if (!file) return
-  if (!confirm(t.value.importConfirm)) return
+  pendingImportFile = file
+  confirmImportOpen.value = true
+}
+
+const cancelImport = () => { confirmImportOpen.value = false; pendingImportFile = null }
+
+const doImport = async () => {
+  confirmImportOpen.value = false
+  const file = pendingImportFile
+  pendingImportFile = null
+  if (!file) return
   busy.value = true; ioError.value = false; ioStatus.value = ''
   try {
     const text = await file.text()
@@ -173,4 +200,8 @@ const onImportFile = async (event) => {
 .actions-row button.primary { background: var(--color-button-primary); color: white; border-color: var(--color-button-primary); }
 .status { font-size: 0.8em; color: var(--color-text-secondary); }
 .status.error { color: var(--color-error); }
+.confirm-layer { z-index: 1100; }
+.confirm-modal { max-width: 380px; }
+.actions-row.end { justify-content: flex-end; margin-top: 0.5rem; }
+.actions-row button.primary.danger { background: var(--color-error, #b33); border-color: var(--color-error, #b33); }
 </style>

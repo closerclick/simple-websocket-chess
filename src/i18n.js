@@ -82,6 +82,8 @@ const messages = {
     idExported: 'Identidad exportada',
     exportFail: 'No se pudo exportar: ',
     importConfirm: 'Importar reemplazará tu identidad actual. ¿Continuar?',
+    importConfirmTitle: 'Reemplazar identidad',
+    cancel: 'Cancelar',
     idImported: 'Identidad importada. Recarga la página para sincronizar.',
     invalidFile: 'Archivo inválido: ',
     // modal de perfil/rating
@@ -170,6 +172,8 @@ const messages = {
     idExported: 'Identity exported',
     exportFail: "Couldn't export: ",
     importConfirm: 'Importing will replace your current identity. Continue?',
+    importConfirmTitle: 'Replace identity',
+    cancel: 'Cancel',
     idImported: 'Identity imported. Reload the page to sync.',
     invalidFile: 'Invalid file: ',
     // profile/rating modal
