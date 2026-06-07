@@ -56,6 +56,7 @@
                 <template v-if="(r.hostScore || 0) > 0"> · ★ {{ (r.hostScore * 5).toFixed(1) }} {{ t.reputation }}</template>
                 <template v-else-if="!r.hostElo">{{ t.newPlayer }}</template>
               </span>
+              <span v-if="otherSeated(r)" class="host-seated">vs {{ otherSeated(r) }}</span>
             </div>
           </div>
 
@@ -101,9 +102,17 @@ const rooms = computed(() => {
 })
 const openCount = computed(() => (connectionStore.publicRooms || []).filter(openSeats).length)
 
-const hostLabel = (r) => r.hostName || (r.isContact ? t.value.yourContact : t.value.host)
+// Nombre visible del anfitrión. El resumen de la sala trae `hostName`, pero las
+// mesas de bots a veces llegan sin él (resúmenes viejos de la flota): caemos al
+// nombre del primer asiento ocupado para que el bot se vea, en vez de quedar
+// como un "host" anónimo. Mismo arreglo que el lobby de Cuarenta.
+const occupiedNames = (r) => (r.seats || []).filter(s => s.status === 'occupied' && s.name).map(s => s.name)
+const hostName = (r) => r.hostName || occupiedNames(r)[0] || ''
+// Rivales ya sentados además del anfitrión (p. ej. una mesa de bot vs bot).
+const otherSeated = (r) => occupiedNames(r).filter(n => n !== hostName(r)).join(' · ')
+const hostLabel = (r) => hostName(r) || (r.isContact ? t.value.yourContact : t.value.host)
 const hostInitials = (r) => {
-  const n = r.hostName || ''
+  const n = hostName(r)
   return n ? n.replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '♟' : '♟'
 }
 const statusText = (r) => {
@@ -199,6 +208,7 @@ watch(() => connectionStore.isConnected, (c) => { if (c) refresh() })
 .host-meta { display: flex; flex-direction: column; min-width: 0; }
 .host-name { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--color-text); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .host-rep { font-size: 12px; color: var(--color-text-tertiary); }
+.host-seated { font-size: 12px; color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 6px; border-radius: 6px; }
 .tag.friend { background: rgba(205,163,80,.18); color: var(--color-primary-light); }
 .elo-mini { color: var(--color-primary-light); font-weight: 700; font-family: var(--font-mono); }
