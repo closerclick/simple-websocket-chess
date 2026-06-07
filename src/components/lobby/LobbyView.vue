@@ -7,21 +7,21 @@
         <p>{{ t.playSub }}</p>
       </div>
       <div class="create-row">
-        <div class="vis-toggle" role="tablist">
+        <div class="vis-toggle" role="tablist" data-testid="vis-toggle">
           <button :class="{ on: !isPrivate }" @click="isPrivate = false">🌐 {{ t.public }}</button>
           <button :class="{ on: isPrivate }" @click="isPrivate = true">🔒 {{ t.private }}</button>
         </div>
-        <button class="primary create-btn" @click="createGame">{{ t.createGame }}</button>
+        <button class="primary create-btn" @click="createGame" data-testid="create-game">{{ t.createGame }}</button>
       </div>
       <div class="manual">
-        <input v-model="manualToken" :placeholder="t.codePlaceholder" @keyup.enter="joinManual" />
+        <input v-model="manualToken" :placeholder="t.codePlaceholder" @keyup.enter="joinManual" data-testid="join-code" />
         <button @click="joinManual" :disabled="manualToken.trim().length < 3">{{ t.join }}</button>
       </div>
       <p v-if="errorMessage" class="err">{{ errorMessage }} <button class="link" @click="errorMessage = ''">✕</button></p>
     </section>
 
     <!-- Mesas públicas -->
-    <section class="rooms">
+    <section class="rooms" data-testid="public-tables">
       <header class="rooms-head">
         <div class="rooms-title">
           <h3>{{ t.publicTables }}</h3>

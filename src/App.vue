@@ -8,6 +8,7 @@ import { computeDerivedRating } from './utils/rating'
 import { t, lang, toggleLang } from './i18n'
 import { useBackLayer } from '@closerclick/closer-click-nav/vue'
 import '@closerclick/closer-click-share'
+import { startAppTutorial } from './lib/tutorial'
 import { useGameStore } from './stores/gameStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useHostGameStore } from '@/stores/hostGameStore'
@@ -330,9 +331,28 @@ const colorName = (c) => (c === 'white' ? t.value.white : t.value.black)
 // Conectar automáticamente al montar el componente. Pedimos el nick recién
 // después de conectar+hidratar identidad (el vault puede traer un nick guardado).
 onMounted(async () => {
+  // Capturamos el hash ANTES de conectar: el lobby limpia el #table= entrante al
+  // conectar, y el tutorial necesita saber si la visita fue "limpia".
+  const frag = (location.hash || '').replace(/^#/, '')
   await autoConnect()
   try { await connectionStore.refreshIdentity?.() } catch (_) {}
   if (!connectionStore.hasNick) connectionStore.requireNick(null)
+  // Tutorial guiado (una sola vez por dispositivo). Solo en visita "limpia" (sin
+  // enlace #table entrante), para no interrumpir a quien llega por un enlace.
+  if (frag) return
+  const launchTutorial = () => startAppTutorial({
+    lang: () => lang.value,
+    inGame: () => currentView.value === 'game',
+    goLobby: () => { currentView.value = 'lobby' },
+  })
+  // En el primer arranque el modal de apodo (obligatorio) tapa el lobby: esperamos
+  // a que se cierre y haya apodo antes de mostrar las burbujas.
+  if (connectionStore.hasNick && !connectionStore.nickModalOpen) launchTutorial()
+  else {
+    const stop = watch(() => connectionStore.nickModalOpen, (open) => {
+      if (!open && connectionStore.hasNick) { stop(); launchTutorial() }
+    })
+  }
 })
 </script>
 
