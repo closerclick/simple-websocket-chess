@@ -16,7 +16,7 @@
     "@closerclick/closer-click-proxy-client": "0.6.2",
     "@closerclick/closer-click-reputation": "0.5.0",
     "@closerclick/closer-click-share": "0.2.0",
-    "@closerclick/closer-click-support": "^0.3.9",
+    "@closerclick/closer-click-support": "0.4.1",
     "@closerclick/closer-click-tutorial": "0.1.1",
     "phaser": "^3.90.0",
     "pinia": "^3.0.4",
